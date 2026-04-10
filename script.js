@@ -15,12 +15,13 @@ const historyList = document.getElementById('history-list');
 
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
-let ultimoAcceso = new Map();
+let ultimoRegistro = new Map(); // Control de pausa de 4 segundos por persona
 let historialLocal = [];
 let audioContext = null;
 let sonidosInicializados = false;
+let procesando = false; // Evita procesamiento múltiple simultáneo
 
-// ========== INICIALIZAR SONIDOS (requiere clic del usuario) ==========
+// ========== INICIALIZAR SONIDOS ==========
 function inicializarSonidos() {
     if (sonidosInicializados) return;
     
@@ -38,7 +39,6 @@ function reproducirExito() {
     if (!sonidosInicializados || !audioContext) return;
     
     try {
-        // Reactivar si está suspendido
         if (audioContext.state === 'suspended') {
             audioContext.resume();
         }
@@ -79,8 +79,6 @@ function reproducirFallo() {
         gainNode.gain.value = 0.4;
         
         oscillator.start();
-        
-        // Efecto de descenso para sonido de error
         oscillator.frequency.exponentialRampToValue(150, audioContext.currentTime + 0.5);
         gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.6);
         
@@ -124,9 +122,6 @@ function actualizarHistorialUI() {
         if (reg.tipo === 'entry') {
             clase = 'history-in';
             icono = '✅';
-        } else if (reg.tipo === 'exit') {
-            clase = 'history-out';
-            icono = '🚪';
         } else {
             clase = 'history-denied';
             icono = '⛔';
@@ -162,47 +157,36 @@ async function enviarRegistroANube(registro) {
     }
 }
 
-// ========== CONTROL DE ACCESO CORREGIDO ==========
-let estadoUsuarios = new Map();
+// ========== CONTROL DE ACCESO - SOLO ENTRADA ==========
 
-// ✅ FUNCIÓN PARA ACCESO PERMITIDO (SOLO REGISTRADOS)
-async function procesarAccesoPermitido(nombre, descriptor) {
+// ✅ FUNCIÓN PARA ACCESO PERMITIDO (SOLO REGISTRADOS - SOLO ENTRADA)
+async function procesarAccesoPermitido(nombre) {
+    // Verificar pausa de 4 segundos para esta persona específica
     const ahora = Date.now();
-    const ultimo = ultimoAcceso.get(nombre);
+    const ultimoAcceso = ultimoRegistro.get(nombre);
     
-    if (ultimo && (ahora - ultimo) < 3000) {
-        return;
+    if (ultimoAcceso && (ahora - ultimoAcceso) < 4000) {
+        console.log(`Pausa de 4 segundos para ${nombre}. Próximo acceso en ${4000 - (ahora - ultimoAcceso)}ms`);
+        return; // No registrar si pasaron menos de 4 segundos
     }
-    ultimoAcceso.set(nombre, ahora);
     
-    let estadoActual = estadoUsuarios.get(nombre) || 'fuera';
-    let tipoAcceso = '';
-    let mensaje = '';
-    
-    if (estadoActual === 'fuera') {
-        tipoAcceso = 'entry';
-        mensaje = 'Entrada registrada';
-        estadoUsuarios.set(nombre, 'dentro');
-        actionText.style.color = '#2ecc71';
-        actionText.innerHTML = '✅ ENTRADA REGISTRADA ✅';
-    } else {
-        tipoAcceso = 'exit';
-        mensaje = 'Salida registrada';
-        estadoUsuarios.set(nombre, 'fuera');
-        actionText.style.color = '#e74c3c';
-        actionText.innerHTML = '🚪 SALIDA REGISTRADA 🚪';
-    }
+    // Marcar como registrado
+    ultimoRegistro.set(nombre, ahora);
     
     // Mostrar panel VERDE solo para AUTORIZADOS
     welcomeMessage.innerHTML = `${nombre}`;
+    actionText.innerHTML = '✅ ENTRADA REGISTRADA ✅';
+    actionText.style.color = '#2ecc71';
     welcomePanel.style.display = 'block';
     statusDiv.style.display = 'none';
     deniedPanel.style.display = 'none';
     timestampText.innerHTML = `🕐 ${new Date().toLocaleTimeString()}`;
     
-    agregarAlHistorial(nombre, tipoAcceso, mensaje);
+    // Agregar al historial
+    agregarAlHistorial(nombre, 'entry', 'Entrada registrada correctamente');
     reproducirExito(); // 🔊 Sonido de éxito
     
+    // Ocultar panel después de 3 segundos
     setTimeout(() => {
         if (welcomePanel.style.display === 'block') {
             welcomePanel.style.display = 'none';
@@ -213,28 +197,30 @@ async function procesarAccesoPermitido(nombre, descriptor) {
 
 // ❌ FUNCIÓN PARA ACCESO DENEGADO (NO REGISTRADOS)
 function procesarAccesoDenegado() {
+    // Verificar pausa global para denegados (evitar spam)
     const ahora = Date.now();
-    const ultimoDenegado = ultimoAcceso.get('_denied_');
+    const ultimoDenegado = ultimoRegistro.get('_denied_');
     
-    if (ultimoDenegado && (ahora - ultimoDenegado) < 2000) {
-        return;
+    if (ultimoDenegado && (ahora - ultimoDenegado) < 4000) {
+        return; // No mostrar denegado si pasaron menos de 4 segundos
     }
-    ultimoAcceso.set('_denied_', ahora);
+    ultimoRegistro.set('_denied_', ahora);
     
-    // Mostrar panel ROJO solo para NO AUTORIZADOS
+    // Mostrar panel ROJO para NO AUTORIZADOS
     deniedPanel.style.display = 'block';
     welcomePanel.style.display = 'none';
     statusDiv.style.display = 'none';
     
-    agregarAlHistorial('❌ DESCONOCIDO', 'denied', 'ACCESO DENEGADO - Rostro no registrado');
+    agregarAlHistorial('❌ PERSONA NO REGISTRADA', 'denied', 'ACCESO DENEGADO - Rostro no registrado en la base de datos');
     reproducirFallo(); // 🔊 Sonido de fallo
     
+    // Ocultar panel después de 3 segundos
     setTimeout(() => {
         if (deniedPanel.style.display === 'block') {
             deniedPanel.style.display = 'none';
             statusDiv.style.display = 'block';
         }
-    }, 2000);
+    }, 3000);
 }
 
 // ========== INICIALIZACIÓN DEL SISTEMA ==========
@@ -263,48 +249,58 @@ async function iniciarSistema() {
             faceapi.matchDimensions(canvas, displaySize);
             
             setInterval(async () => {
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-                    .withFaceLandmarks()
-                    .withFaceDescriptors();
+                // Evitar procesamiento múltiple simultáneo
+                if (procesando) return;
+                procesando = true;
                 
-                const resized = faceapi.resizeResults(detections, displaySize);
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                let accesoPermitido = false;
-                let rostroProcesado = false;
-                
-                for (const detection of resized) {
-                    const bestMatch = buscarCoincidencia(detection.descriptor);
+                try {
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceDescriptors();
                     
-                    if (bestMatch.label !== "Desconocido") {
-                        // ✅ PERSONA REGISTRADA
-                        accesoPermitido = true;
-                        rostroProcesado = true;
-                        await procesarAccesoPermitido(bestMatch.label, detection.descriptor);
+                    const resized = faceapi.resizeResults(detections, displaySize);
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    let accesoPermitido = false;
+                    let hayRostros = false;
+                    
+                    for (const detection of resized) {
+                        hayRostros = true;
+                        const bestMatch = buscarCoincidencia(detection.descriptor);
                         
-                        // Dibujar cuadro VERDE
-                        ctx.strokeStyle = "#2ecc71";
-                        ctx.lineWidth = 5;
-                        ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
-                                     detection.detection.box.width, detection.detection.box.height);
-                        break; // Solo procesar el primer rostro reconocido
-                    } else {
-                        // ❌ PERSONA NO REGISTRADA - Solo dibujar cuadro ROJO
-                        rostroProcesado = true;
-                        ctx.strokeStyle = "#e74c3c";
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
-                                     detection.detection.box.width, detection.detection.box.height);
+                        if (bestMatch.label !== "Desconocido") {
+                            // ✅ PERSONA REGISTRADA - Acceso permitido (solo entrada)
+                            accesoPermitido = true;
+                            await procesarAccesoPermitido(bestMatch.label);
+                            
+                            // Dibujar cuadro VERDE
+                            ctx.strokeStyle = "#2ecc71";
+                            ctx.lineWidth = 5;
+                            ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
+                                         detection.detection.box.width, detection.detection.box.height);
+                            break; // Solo procesar el primer rostro reconocido
+                        } else {
+                            // ❌ PERSONA NO REGISTRADA - Dibujar cuadro ROJO
+                            ctx.strokeStyle = "#e74c3c";
+                            ctx.lineWidth = 4;
+                            ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
+                                         detection.detection.box.width, detection.detection.box.height);
+                        }
                     }
+                    
+                    // Si hay rostros pero NINGUNO fue registrado → ACCESO DENEGADO
+                    if (hayRostros && !accesoPermitido) {
+                        procesarAccesoDenegado();
+                    }
+                    
+                } catch (error) {
+                    console.error("Error en detección:", error);
+                } finally {
+                    procesando = false;
                 }
                 
-                // Si se detectaron rostros pero NINGUNO fue registrado → ACCESO DENEGADO
-                if (rostroProcesado && !accesoPermitido) {
-                    procesarAccesoDenegado();
-                }
-                
-            }, 200);
+            }, 500); // Revisar cada 500ms para mejor rendimiento
         };
     } catch (err) {
         statusDiv.innerText = "❌ Error: " + err.message;
@@ -360,7 +356,7 @@ function buscarCoincidencia(descriptorActual) {
 
 // ========== REGISTRO DE NUEVOS USUARIOS ==========
 async function enviarANube() {
-    // IMPORTANTE: Inicializar sonidos al primer clic del usuario
+    // Inicializar sonidos al primer clic
     inicializarSonidos();
     
     const name = document.getElementById('personName').value;
@@ -394,11 +390,10 @@ async function enviarANube() {
     }
 }
 
-// Inicializar sonidos cuando el usuario interactúe con la página
+// Inicializar sonidos cuando el usuario haga clic
 document.body.addEventListener('click', function activarSonidos() {
     inicializarSonidos();
-    document.body.removeEventListener('click', activarSonidos);
-});
+}, { once: true });
 
 // Iniciar el sistema
 iniciarSistema();
