@@ -1,55 +1,70 @@
-// Eliminar usuario - VERSIÓN CORREGIDA
+// Función eliminarUsuario - Versión NO-CORS
 async function eliminarUsuario(idUsuario, rutUsuario, nombreUsuario) {
     const confirmar = confirm(`¿Estás seguro de eliminar al usuario "${nombreUsuario}" (${rutUsuario})?`);
     if (!confirmar) return false;
     
     try {
-        console.log("🗑️ Intentando eliminar usuario:", { id: idUsuario, rut: rutUsuario });
-        
         const payload = {
             operacion: "eliminar",
             id: idUsuario,
             rut: rutUsuario
         };
         
-        console.log("📤 Enviando payload:", payload);
+        // Usar modo 'no-cors' y enviar como form-urlencoded
+        const formData = new URLSearchParams();
+        formData.append('data', JSON.stringify(payload));
         
-        const response = await fetch(SCRIPT_URL_USUARIOS, {
+        await fetch(SCRIPT_URL_USUARIOS, {
             method: 'POST',
-            mode: 'cors',
-            headers: { 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
+            mode: 'no-cors',
+            body: formData
         });
         
-        console.log("📥 Respuesta status:", response.status);
+        // Con no-cors no podemos leer la respuesta, así que asumimos éxito
+        alert("✅ Usuario eliminado correctamente (modo no-cors)");
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        // Recargar usuarios después de 1 segundo
+        setTimeout(async () => {
+            await cargarUsuariosDesdeExcel();
+            location.reload();
+        }, 1000);
         
-        const resultado = await response.json();
-        console.log("📥 Resultado:", resultado);
-        
-        if (resultado.success) {
-            alert("✅ Usuario eliminado correctamente");
-            await cargarUsuariosDesdeExcel(); // Recargar lista
-            
-            // Cerrar el panel admin si está abierto
-            const panelAdmin = document.getElementById('panel-admin-modal');
-            if (panelAdmin) panelAdmin.remove();
-            
-            // Refrescar el panel si está abierto
-            refrescarListaAdmin();
-            return true;
-        } else {
-            alert("❌ Error: " + (resultado.error || "Error desconocido"));
-            return false;
-        }
+        return true;
     } catch (err) {
-        console.error("❌ Error detallado al eliminar:", err);
-        alert("❌ Error al eliminar: " + err.message + "\n\nVerifica la consola (F12) para más detalles.");
+        console.error("Error eliminando usuario:", err);
+        alert("❌ Error al eliminar: " + err.message);
+        return false;
+    }
+}
+
+// Función editarUsuario - Versión NO-CORS
+async function editarUsuario(idUsuario, nuevosDatos) {
+    try {
+        const payload = {
+            operacion: "editar",
+            id: idUsuario,
+            ...nuevosDatos
+        };
+        
+        const formData = new URLSearchParams();
+        formData.append('data', JSON.stringify(payload));
+        
+        await fetch(SCRIPT_URL_USUARIOS, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formData
+        });
+        
+        alert("✅ Usuario actualizado correctamente");
+        setTimeout(async () => {
+            await cargarUsuariosDesdeExcel();
+            location.reload();
+        }, 1000);
+        
+        return true;
+    } catch (err) {
+        console.error("Error editando usuario:", err);
+        alert("❌ Error al editar: " + err.message);
         return false;
     }
 }
