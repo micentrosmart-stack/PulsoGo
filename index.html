@@ -9,21 +9,21 @@
     <style>
         body { margin: 0; background: #121621; color: white; font-family: sans-serif; text-align: center; }
         .controls { padding: 20px; background: #1a1f2c; border-bottom: 2px solid #3498db; }
-        input { width: 80%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; }
-        button { width: 80%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .video-box { position: relative; width: 100%; max-width: 450px; margin: 20px auto; border-radius: 10px; overflow: hidden; }
+        input { width: 85%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 16px; }
+        button { width: 85%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
+        .video-box { position: relative; width: 100%; max-width: 450px; margin: 20px auto; border-radius: 15px; overflow: hidden; border: 2px solid #3498db; }
         video { width: 100%; display: block; background: #000; }
         canvas { position: absolute; top: 0; left: 0; }
-        #status { margin-top: 10px; font-size: 14px; color: #3498db; }
+        #status { margin-top: 10px; font-size: 14px; color: #00d4ff; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="controls">
-        <h3>Registro de Personal</h3>
-        <input type="text" id="personName" placeholder="Nombre completo">
-        <input type="text" id="personRole" placeholder="Cargo (ej: CCTV)">
-        <button onclick="enviarANube()">GUARDAR EN EXCEL</button>
+        <h2 style="margin:0 0 10px 0;">Registro Pulso Go!</h2>
+        <input type="text" id="personName" placeholder="Escribe tu Nombre">
+        <input type="text" id="personRole" placeholder="Escribe tu Cargo">
+        <button onclick="enviarANube()">REGISTRAR EN EXCEL</button>
         <div id="status">Iniciando sistema...</div>
     </div>
 
