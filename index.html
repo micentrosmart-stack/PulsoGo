@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pulso Go! - Control de Acceso Profesional</title>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script defer src="script.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -228,9 +229,7 @@
         .denied-header {
             background: linear-gradient(135deg, #e74c3c, #c0392b);
             padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            text-align: center;
         }
 
         .denied-body {
@@ -247,17 +246,6 @@
         .denied-body p {
             color: #a0a0a0;
             font-size: 14px;
-        }
-
-        /* Botón cerrar tarjeta */
-        .close-card-btn {
-            cursor: pointer;
-            font-size: 20px;
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-        .close-card-btn:hover {
-            opacity: 1;
         }
 
         /* Formulario de Registro */
@@ -363,10 +351,7 @@
         <div class="welcome-card" id="welcome-card">
             <div class="card-header">
                 <span class="access-badge"><i class="fas fa-check-circle"></i> ACCESO AUTORIZADO</span>
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <i class="fas fa-id-card"></i>
-                    <i class="fas fa-times-circle close-card-btn" onclick="cerrarTarjetas()"></i>
-                </div>
+                <i class="fas fa-id-card"></i>
             </div>
             <div class="card-body">
                 <div class="user-info">
@@ -389,10 +374,6 @@
                     <div class="info-label"><i class="fas fa-briefcase"></i><span>Cargo</span></div>
                     <div class="info-value" id="user-role">---</div>
                 </div>
-                <div class="info-row">
-                    <div class="info-label"><i class="fas fa-map-pin"></i><span>Instalación</span></div>
-                    <div class="info-value" id="user-instalacion">---</div>
-                </div>
                 <div class="access-status">
                     <i class="fas fa-check-circle"></i>
                     <span>ACCESO CONCEDIDO</span>
@@ -404,7 +385,6 @@
         <div class="denied-card" id="denied-card">
             <div class="denied-header">
                 <i class="fas fa-ban"></i>
-                <i class="fas fa-times-circle close-card-btn" onclick="cerrarTarjetas()"></i>
             </div>
             <div class="denied-body">
                 <i class="fas fa-user-slash" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px; display: block;"></i>
@@ -428,310 +408,10 @@
             <div class="form-group">
                 <input type="text" id="personEmpresa" placeholder="Empresa">
             </div>
-            <div class="form-group">
-                <input type="text" id="personInstalacion" placeholder="Instalación / Sucursal">
-            </div>
             <button class="btn-register" onclick="enviarANube()">
                 <i class="fas fa-save"></i> Guardar Registro
             </button>
         </div>
     </div>
-
-    <script>
-        // ===== CONFIGURACIÓN =====
-        const SCRIPT_URL_USUARIOS = "https://script.google.com/macros/s/AKfycbwRDhofBv-AyXF9AgzekgPeII37Fw-6JmKSfYR6U-3-5eInkL-sdXS7wthzBbbASUFYeA/exec";
-        const SCRIPT_URL_REGISTRO = "https://script.google.com/macros/s/AKfycbw6WM72PGsbbRacwHNv7VLiOe4r8DcXZ0Vjrvbcgh9etbzbtvCXCMdaYTI9eX4KS62LdQ/exec";
-
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('overlay');
-        const statusDiv = document.getElementById('status');
-        const welcomeCard = document.getElementById('welcome-card');
-        const deniedCard = document.getElementById('denied-card');
-        const welcomeName = document.getElementById('welcome-name');
-        const welcomeCompany = document.getElementById('welcome-company');
-        const userRut = document.getElementById('user-rut');
-        const userRole = document.getElementById('user-role');
-        const userInstalacion = document.getElementById('user-instalacion');
-
-        let usuariosRegistrados = [];
-        let cargandoUsuarios = true;
-        let deteccionEnProceso = false;
-        let ultimoUsuarioMostrado = null;
-        let ultimoRegistroAcceso = {};
-        let modoRegistro = false;
-
-        // ===== FUNCIONES GLOBALES =====
-        window.cerrarTarjetas = function() {
-            welcomeCard.style.display = 'none';
-            deniedCard.style.display = 'none';
-            ultimoUsuarioMostrado = null;
-            console.log("🚫 Tarjetas cerradas manualmente");
-        };
-
-        window.enviarANube = async function() {
-            activarModoRegistro();
-            
-            const rut = document.getElementById('personRut').value;
-            const name = document.getElementById('personName').value;
-            const role = document.getElementById('personRole').value;
-            const empresa = document.getElementById('personEmpresa').value;
-            const instalacion = document.getElementById('personInstalacion')?.value || 'No especificada';
-            
-            if (!rut || !name || !role || !empresa) {
-                alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa");
-                desactivarModoRegistro();
-                return;
-            }
-
-            updateStatus("Capturando rostro...", "fa-camera");
-            
-            const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-
-            if (detection) {
-                const payload = {
-                    id: Date.now().toString(),
-                    rut: rut,
-                    name: name.toUpperCase(),
-                    role: role,
-                    empresa: empresa.toUpperCase(),
-                    instalacion: instalacion,
-                    faceDescriptor: JSON.stringify(Array.from(detection.descriptor))
-                };
-                
-                fetch(SCRIPT_URL_USUARIOS, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify(payload) 
-                })
-                .then(() => {
-                    alert(`✅ REGISTRO EXITOSO!\n\n👤 ${name}\n🏭 ${instalacion}\n🔄 Recargando...`);
-                    location.reload();
-                })
-                .catch(err => {
-                    console.error("❌ Error:", err);
-                    alert("❌ Error al registrar: " + err.message);
-                    desactivarModoRegistro();
-                });
-            } else {
-                alert("❌ No se detectó ningún rostro.");
-                updateStatus("No se detectó rostro", "fa-face-frown");
-                desactivarModoRegistro();
-            }
-        };
-
-        // ===== FUNCIONES INTERNAS =====
-        async function registrarAccesoEnArchivoSeparado(usuario) {
-            try {
-                const ahora = Date.now();
-                if (ultimoRegistroAcceso[usuario.id] && ahora - ultimoRegistroAcceso[usuario.id] < 10000) {
-                    return;
-                }
-                ultimoRegistroAcceso[usuario.id] = ahora;
-                
-                const payload = {
-                    id: usuario.id,
-                    rut: usuario.rut,
-                    name: usuario.name,
-                    role: usuario.role,
-                    empresa: usuario.empresa,
-                    instalacion: usuario.instalacion,
-                    fecha: new Date().toISOString()
-                };
-                
-                await fetch(SCRIPT_URL_REGISTRO, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    body: JSON.stringify(payload) 
-                });
-                console.log("✅ Acceso registrado:", usuario.name);
-            } catch (err) {
-                console.error("❌ Error:", err);
-            }
-        }
-
-        async function iniciarSistema() {
-            try {
-                updateStatus("Cargando modelos faciales...", "fa-spinner fa-pulse");
-                
-                const path = '.';
-                await faceapi.nets.tinyFaceDetector.loadFromUri(path);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(path);
-                await faceapi.nets.faceRecognitionNet.loadFromUri(path);
-                
-                updateStatus("Cargando base de datos...", "fa-spinner fa-pulse");
-                await cargarUsuariosDesdeExcel();
-                cargandoUsuarios = false;
-                
-                console.log("✅ Sistema listo -", usuariosRegistrados.length, "usuarios");
-
-                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                video.srcObject = stream;
-                
-                video.onplay = () => {
-                    updateStatus("Sistema activo - Esperando usuario", "fa-eye");
-                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
-                    faceapi.matchDimensions(canvas, displaySize);
-
-                    setInterval(async () => {
-                        if (modoRegistro || deteccionEnProceso) return;
-                        
-                        deteccionEnProceso = true;
-                        
-                        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-                            .withFaceLandmarks()
-                            .withFaceDescriptors();
-                        
-                        const resized = faceapi.resizeResults(detections, displaySize);
-                        const ctx = canvas.getContext('2d');
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        
-                        let personaAutorizada = false;
-                        let datosPersona = null;
-                        let rostroEncontrado = false;
-                        
-                        if (resized.length > 0) {
-                            rostroEncontrado = true;
-                            const rostro = resized[0];
-                            const resultado = buscarCoincidencia(rostro.descriptor);
-                            
-                            if (resultado.label !== "Desconocido" && resultado.label !== "unknown") {
-                                personaAutorizada = true;
-                                datosPersona = resultado.datos;
-                            }
-                            
-                            dibujarCuadroDeteccion(ctx, rostro, personaAutorizada);
-                        }
-                        
-                        if (personaAutorizada && datosPersona) {
-                            if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== datosPersona.id) {
-                                mostrarTarjetaBienvenida(datosPersona);
-                                ultimoUsuarioMostrado = datosPersona;
-                            }
-                        } else if (rostroEncontrado && !personaAutorizada) {
-                            if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== 'denegado') {
-                                mostrarTarjetaDenegada();
-                                ultimoUsuarioMostrado = { id: 'denegado' };
-                            }
-                        }
-                        
-                        setTimeout(() => { deteccionEnProceso = false; }, 3000);
-                        updateStatus("Sistema activo", "fa-eye");
-                        
-                    }, 100);
-                };
-            } catch (err) {
-                updateStatus("Error: " + err.message, "fa-exclamation-triangle");
-                console.error(err);
-            }
-        }
-
-        function dibujarCuadroDeteccion(ctx, rostro, esAutorizado) {
-            if (esAutorizado) {
-                ctx.strokeStyle = "#2ecc71";
-                ctx.lineWidth = 4;
-                ctx.shadowColor = "#2ecc71";
-                ctx.shadowBlur = 10;
-                ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
-                             rostro.detection.box.width, rostro.detection.box.height);
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "#2ecc71";
-                ctx.font = "bold 16px 'Inter'";
-                ctx.fillText("✓ AUTORIZADO", rostro.detection.box.x, rostro.detection.box.y - 8);
-            } else {
-                ctx.strokeStyle = "#e74c3c";
-                ctx.lineWidth = 4;
-                ctx.shadowColor = "#e74c3c";
-                ctx.shadowBlur = 10;
-                ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
-                             rostro.detection.box.width, rostro.detection.box.height);
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "#e74c3c";
-                ctx.font = "bold 16px 'Inter'";
-                ctx.fillText("✗ ACCESO DENEGADO", rostro.detection.box.x, rostro.detection.box.y - 8);
-            }
-        }
-
-        function mostrarTarjetaBienvenida(usuario) {
-            registrarAccesoEnArchivoSeparado(usuario);
-            
-            deniedCard.style.display = 'none';
-            welcomeName.textContent = usuario.name || "Usuario";
-            
-            const companySpan = welcomeCompany.querySelector('span');
-            if (companySpan) companySpan.textContent = usuario.empresa || "No especificada";
-            
-            userRut.textContent = usuario.rut || "No registrado";
-            userRole.textContent = usuario.role || "No especificado";
-            if (userInstalacion) userInstalacion.textContent = usuario.instalacion || "No especificada";
-            
-            welcomeCard.style.display = 'block';
-            console.log("🎉 BIENVENIDO:", usuario.name);
-        }
-
-        function mostrarTarjetaDenegada() {
-            welcomeCard.style.display = 'none';
-            deniedCard.style.display = 'block';
-        }
-
-        function updateStatus(texto, icono) {
-            const statusEl = document.getElementById('status');
-            if (statusEl) {
-                statusEl.innerHTML = `<i class="fas ${icono}"></i><span>${texto}</span>`;
-            }
-        }
-
-        async function cargarUsuariosDesdeExcel() {
-            try {
-                const response = await fetch(SCRIPT_URL_USUARIOS);
-                const data = await response.json();
-                usuariosRegistrados = data.map(user => ({
-                    id: user.id,
-                    name: user.name,
-                    rut: user.rut,
-                    role: user.role,
-                    empresa: user.empresa,
-                    instalacion: user.instalacion,
-                    descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
-                }));
-                console.log("📥 Datos recibidos:", usuariosRegistrados.length, "usuarios");
-            } catch (e) {
-                console.error("❌ Error:", e);
-                usuariosRegistrados = [];
-            }
-        }
-
-        function buscarCoincidencia(descriptorActual) {
-            if (usuariosRegistrados.length === 0) return { label: "Desconocido", datos: null };
-
-            const labeledDescriptors = usuariosRegistrados.map(u => 
-                new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])
-            );
-            
-            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
-            const bestMatch = faceMatcher.findBestMatch(descriptorActual);
-            
-            if (bestMatch.label !== "unknown" && bestMatch.label !== "Desconocido") {
-                const usuarioEncontrado = usuariosRegistrados.find(u => u.name === bestMatch.label);
-                return { label: bestMatch.label, datos: usuarioEncontrado };
-            }
-            return { label: "Desconocido", datos: null };
-        }
-
-        function activarModoRegistro() {
-            modoRegistro = true;
-            window.cerrarTarjetas();
-            updateStatus("📝 MODO REGISTRO ACTIVO", "fa-user-plus");
-        }
-
-        function desactivarModoRegistro() {
-            modoRegistro = false;
-            updateStatus("Sistema activo", "fa-eye");
-        }
-
-        // Iniciar todo
-        iniciarSistema();
-    </script>
 </body>
 </html>
