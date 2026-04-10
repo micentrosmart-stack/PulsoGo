@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pulso Go! - Control de Acceso</title>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script defer src="script.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -23,7 +22,7 @@
         .main-container { width: 100%; max-width: 500px; }
         .header { text-align: center; margin-bottom: 25px; }
         .header h1 {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 800;
             background: linear-gradient(135deg, #3498db, #2ecc71);
             -webkit-background-clip: text;
@@ -61,7 +60,6 @@
             border-radius: 24px;
             overflow: hidden;
             border: 1px solid rgba(46, 204, 113, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
         }
         .card-header {
@@ -143,59 +141,6 @@
         .denied-body { padding: 32px 24px; text-align: center; }
         .denied-body h3 { font-size: 24px; color: #e74c3c; margin-bottom: 8px; }
         .denied-body p { color: #a0a0a0; font-size: 14px; }
-        .register-card {
-            margin-top: 24px;
-            background: rgba(26, 31, 46, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .register-card h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #b0b0b0;
-        }
-        .form-group { margin-bottom: 12px; }
-        .form-group input {
-            width: 100%;
-            padding: 14px 16px;
-            background: rgba(15, 20, 34, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            color: white;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #3498db;
-            background: rgba(15, 20, 34, 1);
-        }
-        .form-group input::placeholder { color: #4a4f6e; }
-        .btn-register {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            border: none;
-            border-radius: 14px;
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .btn-register:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
-        }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -211,7 +156,7 @@
     <div class="main-container">
         <div class="header">
             <h1>Pulso Go!</h1>
-            <p>Sistema de Control de Acceso</p>
+            <p>Control de Acceso Facial</p>
         </div>
 
         <div class="video-container">
@@ -259,15 +204,198 @@
                 <p>Usuario no registrado en el sistema</p>
             </div>
         </div>
-
-        <div class="register-card">
-            <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
-            <div class="form-group"><input type="text" id="personRut" placeholder="RUT / DNI (Ej: 12.345.678-9)"></div>
-            <div class="form-group"><input type="text" id="personName" placeholder="Nombre Completo"></div>
-            <div class="form-group"><input type="text" id="personRole" placeholder="Cargo / Puesto"></div>
-            <div class="form-group"><input type="text" id="personEmpresa" placeholder="Empresa"></div>
-            <button class="btn-register" onclick="enviarANube()"><i class="fas fa-save"></i> Guardar Registro</button>
-        </div>
     </div>
+
+    <script>
+        // ===== CONFIGURACIÓN =====
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRDhofBv-AyXF9AgzekgPeII37Fw-6JmKSfYR6U-3-5eInkL-sdXS7wthzBbbASUFYeA/exec";
+        
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('overlay');
+        const statusDiv = document.getElementById('status');
+        const welcomeCard = document.getElementById('welcome-card');
+        const deniedCard = document.getElementById('denied-card');
+        const welcomeName = document.getElementById('welcome-name');
+        const welcomeCompany = document.getElementById('welcome-company');
+        const userRut = document.getElementById('user-rut');
+        const userRole = document.getElementById('user-role');
+        
+        let usuariosRegistrados = [];
+        let deteccionEnProceso = false;
+        let timeoutReactivacion = null;
+        let timeoutOcultarCard = null;
+        
+        // ===== FUNCIONES PRINCIPALES =====
+        async function iniciarSistema() {
+            try {
+                updateStatus("Cargando modelos faciales...", "fa-spinner fa-pulse");
+                
+                await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+                
+                updateStatus("Cargando base de datos...", "fa-spinner fa-pulse");
+                await cargarUsuarios();
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+                
+                video.onplay = () => {
+                    updateStatus("Sistema activo - Mostrando rostro", "fa-eye");
+                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+                    
+                    setInterval(async () => {
+                        if (deteccionEnProceso) return;
+                        
+                        deteccionEnProceso = true;
+                        
+                        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptors();
+                        
+                        const resized = faceapi.resizeResults(detections, displaySize);
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        if (resized.length > 0) {
+                            const rostro = resized[0];
+                            const descriptor = rostro.descriptor;
+                            const resultado = buscarCoincidencia(descriptor);
+                            
+                            if (resultado.label !== "Desconocido") {
+                                // ACCESO CONCEDIDO
+                                dibujarCuadro(ctx, rostro, true);
+                                mostrarTarjetaBienvenida(resultado.datos);
+                                await registrarAcceso(resultado.datos);
+                            } else {
+                                // ACCESO DENEGADO
+                                dibujarCuadro(ctx, rostro, false);
+                                mostrarTarjetaDenegada();
+                            }
+                            
+                            // Bloquear detecciones por 3 segundos
+                            setTimeout(() => {
+                                deteccionEnProceso = false;
+                            }, 3000);
+                        } else {
+                            deteccionEnProceso = false;
+                            ocultarTarjetas();
+                        }
+                    }, 100);
+                };
+            } catch (err) {
+                updateStatus("Error: " + err.message, "fa-exclamation-triangle");
+                console.error("Error:", err);
+            }
+        }
+        
+        function dibujarCuadro(ctx, rostro, esAutorizado) {
+            const color = esAutorizado ? "#2ecc71" : "#e74c3c";
+            const texto = esAutorizado ? "✓ AUTORIZADO" : "✗ ACCESO DENEGADO";
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                         rostro.detection.box.width, rostro.detection.box.height);
+            ctx.font = "bold 16px 'Inter', sans-serif";
+            ctx.fillStyle = color;
+            ctx.fillText(texto, rostro.detection.box.x, rostro.detection.box.y - 8);
+        }
+        
+        function mostrarTarjetaBienvenida(usuario) {
+            if (timeoutOcultarCard) clearTimeout(timeoutOcultarCard);
+            
+            deniedCard.style.display = 'none';
+            welcomeName.textContent = usuario.name;
+            welcomeCompany.querySelector('span').textContent = usuario.empresa;
+            userRut.textContent = usuario.rut;
+            userRole.textContent = usuario.role;
+            welcomeCard.style.display = 'block';
+            
+            timeoutOcultarCard = setTimeout(() => ocultarTarjetas(), 4000);
+        }
+        
+        function mostrarTarjetaDenegada() {
+            if (timeoutOcultarCard) clearTimeout(timeoutOcultarCard);
+            welcomeCard.style.display = 'none';
+            deniedCard.style.display = 'block';
+            timeoutOcultarCard = setTimeout(() => ocultarTarjetas(), 3000);
+        }
+        
+        function ocultarTarjetas() {
+            welcomeCard.style.display = 'none';
+            deniedCard.style.display = 'none';
+        }
+        
+        async function cargarUsuarios() {
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                
+                usuariosRegistrados = data.map(user => ({
+                    id: user.id,
+                    name: user.name,
+                    rut: user.rut,
+                    role: user.role,
+                    empresa: user.empresa,
+                    descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
+                }));
+                
+                console.log(`✅ ${usuariosRegistrados.length} usuarios cargados`);
+            } catch (e) {
+                console.error("Error cargando usuarios:", e);
+                usuariosRegistrados = [];
+            }
+        }
+        
+        function buscarCoincidencia(descriptorActual) {
+            if (usuariosRegistrados.length === 0) {
+                return { label: "Desconocido", datos: null };
+            }
+            
+            const labeledDescriptors = usuariosRegistrados.map(u => 
+                new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])
+            );
+            
+            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+            const bestMatch = faceMatcher.findBestMatch(descriptorActual);
+            
+            if (bestMatch.label !== "unknown") {
+                const usuario = usuariosRegistrados.find(u => u.name === bestMatch.label);
+                return { label: bestMatch.label, datos: usuario };
+            }
+            
+            return { label: "Desconocido", datos: null };
+        }
+        
+        async function registrarAcceso(usuario) {
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        action: 'registrarAcceso',
+                        userId: usuario.id,
+                        userName: usuario.name,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                console.log("✅ Acceso registrado:", usuario.name);
+            } catch (err) {
+                console.error("Error registrando acceso:", err);
+            }
+        }
+        
+        function updateStatus(texto, icono) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.innerHTML = `<i class="fas ${icono}"></i><span>${texto}</span>`;
+            }
+        }
+        
+        // Iniciar
+        iniciarSistema();
+    </script>
 </body>
 </html>
