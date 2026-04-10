@@ -161,7 +161,7 @@
             color: #b0b0b0;
         }
         .form-group { margin-bottom: 12px; }
-        .form-group input, .form-group select {
+        .form-group input {
             width: 100%;
             padding: 14px 16px;
             background: rgba(15, 20, 34, 0.9);
@@ -171,21 +171,84 @@
             font-family: 'Inter', sans-serif;
             font-size: 14px;
         }
-        .form-group select {
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            background-size: 20px;
-        }
-        .form-group select option { background: #0f1422; color: white; padding: 10px; }
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus {
             outline: none;
             border-color: #3498db;
             background: rgba(15, 20, 34, 1);
         }
         .form-group input::placeholder { color: #4a4f6e; }
+        .search-box {
+            position: relative;
+        }
+        .search-box i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c7293;
+        }
+        .search-box input {
+            padding-left: 42px;
+        }
+        .user-list-container {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            border-radius: 14px;
+            background: rgba(15, 20, 34, 0.5);
+        }
+        .user-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin: 6px;
+            background: rgba(26, 31, 46, 0.9);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        .user-item:hover {
+            background: rgba(52, 152, 219, 0.2);
+            transform: translateX(4px);
+        }
+        .user-item.selected {
+            background: rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+        .user-item-info {
+            flex: 1;
+        }
+        .user-item-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+        }
+        .user-item-rut {
+            font-size: 11px;
+            color: #8b8faa;
+            margin-top: 2px;
+        }
+        .user-item-empresa {
+            font-size: 11px;
+            color: #2ecc71;
+            margin-top: 2px;
+        }
+        .user-item-delete {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .user-item-delete:hover {
+            background: #e74c3c;
+            color: white;
+        }
         .btn-register {
             width: 100%;
             padding: 14px;
@@ -202,9 +265,21 @@
             gap: 8px;
             transition: all 0.3s ease;
         }
-        .btn-register:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3); }
-        .btn-delete { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .btn-delete:hover { box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3); }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+        .btn-delete {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        .btn-delete:hover {
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+        }
+        .btn-delete:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -240,7 +315,11 @@
         }
         .btn-cancel { background: #2c3e50; color: white; }
         .btn-confirm { background: #e74c3c; color: white; }
-        hr { margin: 20px 0; border: 1px solid rgba(255,255,255,0.05); }
+        .empty-message {
+            padding: 20px;
+            text-align: center;
+            color: #6c7293;
+        }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -249,6 +328,17 @@
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3498db;
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -315,15 +405,26 @@
             <button class="btn-register" onclick="enviarANube()"><i class="fas fa-save"></i> Guardar Registro</button>
         </div>
 
-        <!-- ELIMINAR USUARIO -->
+        <!-- ELIMINAR USUARIO CON BUSCADOR -->
         <div class="register-card">
             <h3><i class="fas fa-trash-alt"></i> Eliminar Usuario</h3>
-            <div class="form-group">
-                <select id="deleteUserSelect">
-                    <option value="">Cargando lista de usuarios...</option>
-                </select>
+            
+            <div class="form-group search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchUser" placeholder="Buscar por nombre, RUT o empresa..." onkeyup="filtrarUsuarios()">
             </div>
-            <button class="btn-register btn-delete" onclick="eliminarUsuario()"><i class="fas fa-user-minus"></i> Eliminar Usuario Seleccionado</button>
+            
+            <div class="user-list-container" id="userListContainer">
+                <div id="userList">
+                    <div class="empty-message">
+                        <i class="fas fa-spinner fa-pulse"></i> Cargando usuarios...
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn-register btn-delete" id="btnEliminarSeleccionado" onclick="eliminarUsuarioSeleccionado()" disabled>
+                <i class="fas fa-user-minus"></i> Eliminar Usuario Seleccionado
+            </button>
         </div>
     </div>
 
@@ -334,8 +435,8 @@
             <h3>¿Confirmar eliminación?</h3>
             <p id="confirmMessage"></p>
             <div class="modal-buttons">
-                <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
-                <button class="btn-confirm" onclick="confirmarEliminacion()">Eliminar</button>
+                <button class="btn-cancel" onclick="cerrarModalEliminar()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarEliminacionFinal()">Eliminar</button>
             </div>
         </div>
     </div>
