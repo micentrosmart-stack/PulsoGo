@@ -16,17 +16,13 @@ const userRole = document.getElementById('user-role');
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
 let deteccionEnProceso = false;
-let ultimoUsuarioMostrado = null; // Para evitar mostrar la misma tarjeta repetidamente
-let tiempoEsperaEntreDetecciones = 3000; // 3 segundos entre detecciones
-let ultimoRegistroAcceso = {}; // Para evitar registrar el mismo acceso múltiples veces
-
-// ===== NUEVO: Variable para controlar si el sistema está en modo registro =====
+let ultimoUsuarioMostrado = null;
+let ultimoRegistroAcceso = {};
 let modoRegistro = false;
 
 // Registrar acceso
 async function registrarAccesoEnArchivoSeparado(usuario) {
     try {
-        // Evitar registrar el mismo acceso múltiples veces en poco tiempo
         const ahora = Date.now();
         if (ultimoRegistroAcceso[usuario.id] && ahora - ultimoRegistroAcceso[usuario.id] < 10000) {
             console.log("⏭️ Acceso ya registrado recientemente para:", usuario.name);
@@ -119,12 +115,9 @@ async function iniciarSistema() {
                     }
                     
                     dibujarCuadroDeteccion(ctx, rostro, personaAutorizada);
-                } else {
-                    // Si no hay rostro, podemos ocultar las tarjetas después de un tiempo
-                    // pero mejor dejamos que el usuario las cierre manualmente
                 }
                 
-                // ===== NUEVO: Solo mostrar tarjeta si es un usuario diferente al último mostrado =====
+                // ===== SOLO MOSTRAR TARJETA SI ES UN USUARIO DIFERENTE =====
                 if (personaAutorizada && datosPersona) {
                     if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== datosPersona.id) {
                         mostrarTarjetaBienvenida(datosPersona);
@@ -137,10 +130,10 @@ async function iniciarSistema() {
                     }
                 }
                 
-                // Liberar el bloqueo después de un tiempo
+                // Liberar el bloqueo después de 3 segundos
                 setTimeout(() => {
                     deteccionEnProceso = false;
-                }, tiempoEsperaEntreDetecciones);
+                }, 3000);
                 
                 updateStatus("Sistema activo", "fa-eye");
                 
@@ -192,7 +185,6 @@ function mostrarTarjetaBienvenida(usuario) {
     userRut.textContent = usuario.rut || "No registrado";
     userRole.textContent = usuario.role || "No especificado";
     
-    // Actualizar instalación si existe el elemento
     const userInstalacionEl = document.getElementById('user-instalacion');
     if (userInstalacionEl) {
         userInstalacionEl.textContent = usuario.instalacion || "No especificada";
@@ -202,26 +194,21 @@ function mostrarTarjetaBienvenida(usuario) {
     
     console.log("🎉 BIENVENIDO:", usuario.name, "|", usuario.instalacion);
     
-    // ===== NUEVO: NO ocultar automáticamente - la tarjeta se queda visible =====
+    // ===== NO OCULTAR NUNCA - LA TARJETA SE QUEDA VISIBLE =====
 }
 
 function mostrarTarjetaDenegada() {
     welcomeCard.style.display = 'none';
     deniedCard.style.display = 'block';
-    // ===== NUEVO: NO ocultar automáticamente =====
+    // ===== NO OCULTAR NUNCA - LA TARJETA SE QUEDA VISIBLE =====
 }
 
-// ===== NUEVA FUNCIÓN: Para cerrar tarjetas manualmente =====
+// ===== FUNCIÓN PARA CERRAR MANUALMENTE =====
 function cerrarTarjetas() {
     welcomeCard.style.display = 'none';
     deniedCard.style.display = 'none';
     ultimoUsuarioMostrado = null;
-}
-
-function ocultarTarjetas() {
-    welcomeCard.style.display = 'none';
-    deniedCard.style.display = 'none';
-    ultimoUsuarioMostrado = null;
+    console.log("🚫 Tarjetas cerradas manualmente");
 }
 
 function updateStatus(texto, icono) {
@@ -272,15 +259,13 @@ function buscarCoincidencia(descriptorActual) {
     return { label: "Desconocido", datos: null };
 }
 
-// ===== NUEVA FUNCIÓN: Activar modo registro =====
 function activarModoRegistro() {
     modoRegistro = true;
-    ocultarTarjetas();
-    updateStatus("📝 MODO REGISTRO ACTIVO", "fa-user-plus");
+    cerrarTarjetas(); // Cerrar tarjetas al entrar en modo registro
+    updateStatus("📝 MODO REGISTRO ACTIVO - Puedes ingresar datos", "fa-user-plus");
     console.log("📝 Modo registro activado - Detección pausada");
 }
 
-// ===== NUEVA FUNCIÓN: Desactivar modo registro =====
 function desactivarModoRegistro() {
     modoRegistro = false;
     updateStatus("Sistema activo", "fa-eye");
@@ -350,6 +335,8 @@ async function enviarANube() {
     }
 }
 
-// ===== NUEVO: Agregar botón de cerrar a las tarjetas (se hará en el HTML) =====
+// Exponer funciones globalmente
+window.cerrarTarjetas = cerrarTarjetas;
+window.enviarANube = enviarANube;
 
 iniciarSistema();
