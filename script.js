@@ -12,19 +12,29 @@ const welcomeName = document.getElementById('welcome-name');
 const welcomeCompany = document.getElementById('welcome-company');
 const userRut = document.getElementById('user-rut');
 const userRole = document.getElementById('user-role');
-const userInstalacion = document.getElementById('user-instalacion');
 
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
-let timeoutOcultarCard = null;
-let ultimaDeteccion = null;
-let tiempoEspera = 4000;
 let deteccionEnProceso = false;
-let timeoutReactivacion = null;
+let ultimoUsuarioMostrado = null; // Para evitar mostrar la misma tarjeta repetidamente
+let tiempoEsperaEntreDetecciones = 3000; // 3 segundos entre detecciones
+let ultimoRegistroAcceso = {}; // Para evitar registrar el mismo acceso múltiples veces
+
+// ===== NUEVO: Variable para controlar si el sistema está en modo registro =====
+let modoRegistro = false;
 
 // Registrar acceso
 async function registrarAccesoEnArchivoSeparado(usuario) {
     try {
+        // Evitar registrar el mismo acceso múltiples veces en poco tiempo
+        const ahora = Date.now();
+        if (ultimoRegistroAcceso[usuario.id] && ahora - ultimoRegistroAcceso[usuario.id] < 10000) {
+            console.log("⏭️ Acceso ya registrado recientemente para:", usuario.name);
+            return;
+        }
+        
+        ultimoRegistroAcceso[usuario.id] = ahora;
+        
         const payload = {
             id: usuario.id,
             rut: usuario.rut,
@@ -68,15 +78,17 @@ async function iniciarSistema() {
         video.srcObject = stream;
         
         video.onplay = () => {
-            updateStatus("Sistema activo", "fa-eye");
+            updateStatus("Sistema activo - Esperando usuario", "fa-eye");
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
             setInterval(async () => {
-                if (deteccionEnProceso) {
-                    if (ultimaDeteccion) dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize);
+                // Si está en modo registro, no hacer detección
+                if (modoRegistro) {
                     return;
                 }
+                
+                if (deteccionEnProceso) return;
                 
                 deteccionEnProceso = true;
                 
@@ -101,39 +113,36 @@ async function iniciarSistema() {
                     if (resultado.label !== "Desconocido" && resultado.label !== "unknown") {
                         personaAutorizada = true;
                         datosPersona = resultado.datos;
-                        ultimaDeteccion = { tipo: 'autorizado', datos: datosPersona, rostro: rostro };
                         console.log("✅ AUTORIZADO:", resultado.label);
                     } else {
-                        ultimaDeteccion = { tipo: 'denegado', rostro: rostro };
                         console.log("🔴 ACCESO DENEGADO");
                     }
                     
                     dibujarCuadroDeteccion(ctx, rostro, personaAutorizada);
                 } else {
-                    ultimaDeteccion = null;
-                    ocultarTarjetas();
+                    // Si no hay rostro, podemos ocultar las tarjetas después de un tiempo
+                    // pero mejor dejamos que el usuario las cierre manualmente
                 }
                 
+                // ===== NUEVO: Solo mostrar tarjeta si es un usuario diferente al último mostrado =====
                 if (personaAutorizada && datosPersona) {
-                    mostrarTarjetaBienvenida(datosPersona);
+                    if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== datosPersona.id) {
+                        mostrarTarjetaBienvenida(datosPersona);
+                        ultimoUsuarioMostrado = datosPersona;
+                    }
                 } else if (rostroEncontrado && !personaAutorizada) {
-                    mostrarTarjetaDenegada();
+                    if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== 'denegado') {
+                        mostrarTarjetaDenegada();
+                        ultimoUsuarioMostrado = { id: 'denegado' };
+                    }
                 }
                 
-                if (rostroEncontrado) {
-                    if (timeoutReactivacion) clearTimeout(timeoutReactivacion);
-                    timeoutReactivacion = setTimeout(() => {
-                        deteccionEnProceso = false;
-                        updateStatus("Sistema activo", "fa-eye");
-                        if (ultimaDeteccion) {
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        }
-                    }, tiempoEspera);
-                    updateStatus(`Esperando ${tiempoEspera/1000}s`, "fa-clock");
-                } else {
+                // Liberar el bloqueo después de un tiempo
+                setTimeout(() => {
                     deteccionEnProceso = false;
-                    if (timeoutReactivacion) clearTimeout(timeoutReactivacion);
-                }
+                }, tiempoEsperaEntreDetecciones);
+                
+                updateStatus("Sistema activo", "fa-eye");
                 
             }, 100);
         };
@@ -147,66 +156,72 @@ function dibujarCuadroDeteccion(ctx, rostro, esAutorizado) {
     if (esAutorizado) {
         ctx.strokeStyle = "#2ecc71";
         ctx.lineWidth = 4;
+        ctx.shadowColor = "#2ecc71";
+        ctx.shadowBlur = 10;
         ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
                      rostro.detection.box.width, rostro.detection.box.height);
+        ctx.shadowBlur = 0;
         ctx.fillStyle = "#2ecc71";
         ctx.font = "bold 16px 'Inter'";
         ctx.fillText("✓ AUTORIZADO", rostro.detection.box.x, rostro.detection.box.y - 8);
     } else {
         ctx.strokeStyle = "#e74c3c";
         ctx.lineWidth = 4;
+        ctx.shadowColor = "#e74c3c";
+        ctx.shadowBlur = 10;
         ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
                      rostro.detection.box.width, rostro.detection.box.height);
+        ctx.shadowBlur = 0;
         ctx.fillStyle = "#e74c3c";
         ctx.font = "bold 16px 'Inter'";
         ctx.fillText("✗ ACCESO DENEGADO", rostro.detection.box.x, rostro.detection.box.y - 8);
     }
 }
 
-function dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize) {
-    if (!ultimaDeteccion || !ultimaDeteccion.rostro) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    dibujarCuadroDeteccion(ctx, ultimaDeteccion.rostro, ultimaDeteccion.tipo === 'autorizado');
-}
-
 function mostrarTarjetaBienvenida(usuario) {
-    if (timeoutOcultarCard) clearTimeout(timeoutOcultarCard);
-    
     registrarAccesoEnArchivoSeparado(usuario);
     
     deniedCard.style.display = 'none';
     welcomeName.textContent = usuario.name || "Usuario";
     
     const companySpan = welcomeCompany.querySelector('span');
-    companySpan.textContent = usuario.empresa || "No especificada";
+    if (companySpan) {
+        companySpan.textContent = usuario.empresa || "No especificada";
+    }
     
     userRut.textContent = usuario.rut || "No registrado";
     userRole.textContent = usuario.role || "No especificado";
-    userInstalacion.textContent = usuario.instalacion || "No especificada";
+    
+    // Actualizar instalación si existe el elemento
+    const userInstalacionEl = document.getElementById('user-instalacion');
+    if (userInstalacionEl) {
+        userInstalacionEl.textContent = usuario.instalacion || "No especificada";
+    }
     
     welcomeCard.style.display = 'block';
     
-    const statusEl = document.getElementById('status');
-    if (statusEl) statusEl.style.opacity = '0.5';
-    
     console.log("🎉 BIENVENIDO:", usuario.name, "|", usuario.instalacion);
     
-    timeoutOcultarCard = setTimeout(() => ocultarTarjetas(), 4000);
+    // ===== NUEVO: NO ocultar automáticamente - la tarjeta se queda visible =====
 }
 
 function mostrarTarjetaDenegada() {
-    if (timeoutOcultarCard) clearTimeout(timeoutOcultarCard);
     welcomeCard.style.display = 'none';
     deniedCard.style.display = 'block';
-    timeoutOcultarCard = setTimeout(() => ocultarTarjetas(), 3000);
+    // ===== NUEVO: NO ocultar automáticamente =====
+}
+
+// ===== NUEVA FUNCIÓN: Para cerrar tarjetas manualmente =====
+function cerrarTarjetas() {
+    welcomeCard.style.display = 'none';
+    deniedCard.style.display = 'none';
+    ultimoUsuarioMostrado = null;
 }
 
 function ocultarTarjetas() {
     welcomeCard.style.display = 'none';
     deniedCard.style.display = 'none';
-    const statusEl = document.getElementById('status');
-    if (statusEl) statusEl.style.opacity = '1';
+    ultimoUsuarioMostrado = null;
 }
 
 function updateStatus(texto, icono) {
@@ -257,12 +272,30 @@ function buscarCoincidencia(descriptorActual) {
     return { label: "Desconocido", datos: null };
 }
 
+// ===== NUEVA FUNCIÓN: Activar modo registro =====
+function activarModoRegistro() {
+    modoRegistro = true;
+    ocultarTarjetas();
+    updateStatus("📝 MODO REGISTRO ACTIVO", "fa-user-plus");
+    console.log("📝 Modo registro activado - Detección pausada");
+}
+
+// ===== NUEVA FUNCIÓN: Desactivar modo registro =====
+function desactivarModoRegistro() {
+    modoRegistro = false;
+    updateStatus("Sistema activo", "fa-eye");
+    console.log("✅ Modo registro desactivado - Detección reanudada");
+}
+
 async function enviarANube() {
+    // Activar modo registro para pausar la detección
+    activarModoRegistro();
+    
     const rut = document.getElementById('personRut').value;
     const name = document.getElementById('personName').value;
     const role = document.getElementById('personRole').value;
     const empresa = document.getElementById('personEmpresa').value;
-    const instalacion = document.getElementById('personInstalacion').value;
+    const instalacion = document.getElementById('personInstalacion')?.value || 'No especificada';
     
     console.log("📝 Datos del formulario:");
     console.log("  RUT:", rut);
@@ -271,8 +304,9 @@ async function enviarANube() {
     console.log("  Empresa:", empresa);
     console.log("  Instalación:", instalacion);
     
-    if (!rut || !name || !role || !empresa || !instalacion) {
-        alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa\n- Instalación");
+    if (!rut || !name || !role || !empresa) {
+        alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa");
+        desactivarModoRegistro();
         return;
     }
 
@@ -307,11 +341,15 @@ async function enviarANube() {
         .catch(err => {
             console.error("❌ Error:", err);
             alert("❌ Error al registrar: " + err.message);
+            desactivarModoRegistro();
         });
     } else {
         alert("❌ No se detectó ningún rostro. Asegúrate de estar mirando directamente a la cámara.");
         updateStatus("No se detectó rostro", "fa-face-frown");
+        desactivarModoRegistro();
     }
 }
+
+// ===== NUEVO: Agregar botón de cerrar a las tarjetas (se hará en el HTML) =====
 
 iniciarSistema();
