@@ -6,10 +6,9 @@ async function iniciarSistema() {
     try {
         status.innerText = "Cargando modelos faciales...";
         
-        // Ruta a la carpeta que creamos (sin espacios)
-        const path = 'models'; 
+        // El punto '.' le dice a la IA: "los modelos están aquí mismo afuera"
+        const path = '.'; 
         
-        // Cargamos solo lo necesario para el cuadro azul por ahora
         await faceapi.nets.tinyFaceDetector.loadFromUri(path);
         await faceapi.nets.faceLandmark68Net.loadFromUri(path);
         
@@ -17,12 +16,10 @@ async function iniciarSistema() {
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
         
-        status.innerText = "Buscando rostro...";
-        
-        // Cuando el video empiece a reproducirse, ajustamos el cuadro azul
         video.onplay = () => {
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
+            status.innerText = "Buscando rostro...";
 
             setInterval(async () => {
                 const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
@@ -32,8 +29,8 @@ async function iniciarSistema() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 resized.forEach(det => {
-                    // Dibujamos el cuadro azul
-                    ctx.strokeStyle = "#3498db";
+                    // Esto dibujará el cuadro azul
+                    ctx.strokeStyle = "#00d4ff";
                     ctx.lineWidth = 4;
                     ctx.strokeRect(det.box.x, det.box.y, det.box.width, det.box.height);
                 });
@@ -41,11 +38,10 @@ async function iniciarSistema() {
         };
 
     } catch (err) {
-        status.innerText = "ERROR: " + err;
+        status.innerText = "ERROR: " + err.message;
         status.style.color = "red";
         console.error(err);
     }
 }
 
-// Arrancar
 iniciarSistema();
