@@ -243,7 +243,12 @@
             margin-bottom: 8px;
         }
 
-        /* Formulario */
+        .denied-body p {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+
+        /* Formulario de Registro */
         .register-card {
             margin-top: 24px;
             background: rgba(26, 31, 46, 0.8);
@@ -267,7 +272,7 @@
             margin-bottom: 12px;
         }
 
-        .form-group input, .form-group select {
+        .form-group input {
             width: 100%;
             padding: 14px 16px;
             background: rgba(15, 20, 34, 0.9);
@@ -279,13 +284,14 @@
             transition: all 0.2s;
         }
 
-        .form-group select option {
-            background: #1a1f2e;
-        }
-
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus {
             outline: none;
             border-color: #3498db;
+            background: rgba(15, 20, 34, 1);
+        }
+
+        .form-group input::placeholder {
+            color: #4a4f6e;
         }
 
         .btn-register {
@@ -298,6 +304,7 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -340,7 +347,7 @@
             </div>
         </div>
 
-        <!-- Tarjeta de Bienvenida -->
+        <!-- Tarjeta de Bienvenida (Autorizado) -->
         <div class="welcome-card" id="welcome-card">
             <div class="card-header">
                 <span class="access-badge"><i class="fas fa-check-circle"></i> ACCESO AUTORIZADO</span>
@@ -378,7 +385,7 @@
             </div>
         </div>
 
-        <!-- Tarjeta Denegada -->
+        <!-- Tarjeta de Acceso Denegado -->
         <div class="denied-card" id="denied-card">
             <div class="denied-header">
                 <i class="fas fa-ban"></i>
@@ -390,7 +397,7 @@
             </div>
         </div>
 
-        <!-- Formulario de Registro con nueva columna INSTALACIÓN -->
+        <!-- Formulario de Registro -->
         <div class="register-card">
             <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
             <div class="form-group">
@@ -406,16 +413,7 @@
                 <input type="text" id="personEmpresa" placeholder="Empresa">
             </div>
             <div class="form-group">
-                <select id="personInstalacion">
-                    <option value="" disabled selected>Seleccione Instalación</option>
-                    <option value="Fábrica">🏭 Fábrica</option>
-                    <option value="Bodega">📦 Bodega</option>
-                    <option value="Mall">🛍️ Mall</option>
-                    <option value="Oficina">🏢 Oficina</option>
-                    <option value="Sucursal">📍 Sucursal</option>
-                    <option value="Planta">⚙️ Planta</option>
-                    <option value="Centro de Distribución">🚚 Centro de Distribución</option>
-                </select>
+                <input type="text" id="personInstalacion" placeholder="Instalación (Ej: Fábrica, Bodega, Mall, Oficina)">
             </div>
             <button class="btn-register" onclick="enviarANube()">
                 <i class="fas fa-save"></i> Guardar Registro
