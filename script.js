@@ -1,15 +1,10 @@
-// ===== LAS DOS URLS DE GOOGLE APPS SCRIPT =====
-// URL del archivo de USUARIOS (donde están los descriptores faciales)
+// ===== URLS DE GOOGLE APPS SCRIPT =====
 const SCRIPT_URL_USUARIOS = "https://script.google.com/macros/s/AKfycbwRDhofBv-AyXF9AgzekgPeII37Fw-6JmKSfYR6U-3-5eInkL-sdXS7wthzBbbASUFYeA/exec";
-
-// URL del archivo de REGISTRO DE ACCESOS (archivo independiente)
 const SCRIPT_URL_REGISTRO = "https://script.google.com/macros/s/AKfycbw6WM72PGsbbRacwHNv7VLiOe4r8DcXZ0Vjrvbcgh9etbzbtvCXCMdaYTI9eX4KS62LdQ/exec";
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('overlay');
-const statusDiv = document.getElementById('status');
 
-// Elementos de la tarjeta moderna
 const welcomeCard = document.getElementById('welcome-card');
 const deniedCard = document.getElementById('denied-card');
 const welcomeName = document.getElementById('welcome-name');
@@ -18,17 +13,13 @@ const userRut = document.getElementById('user-rut');
 const userRole = document.getElementById('user-role');
 
 let usuariosRegistrados = [];
-let cargandoUsuarios = true;
 let timeoutOcultarCard = null;
-
-// Variables para el cooldown
 let ultimaDeteccion = null;
-let tiempoUltimaDeteccion = 0;
-let tiempoEspera = 4000; // 4 segundos de espera
+let tiempoEspera = 4000;
 let deteccionEnProceso = false;
 let timeoutReactivacion = null;
 
-// ===== FUNCIÓN: Registrar acceso en el ARCHIVO SEPARADO =====
+// ===== REGISTRAR ACCESO =====
 async function registrarAccesoEnArchivoSeparado(usuario) {
     try {
         const payload = {
@@ -38,60 +29,39 @@ async function registrarAccesoEnArchivoSeparado(usuario) {
             empresa: usuario.empresa,
             fecha: new Date().toISOString()
         };
-        
-        console.log("📝 Registrando acceso en archivo SEPARADO:", usuario.name);
-        console.log("📤 Datos enviados:", payload);
-        
-        // Enviar al Apps Script del REGISTRO DE ACCESOS
-        await fetch(SCRIPT_URL_REGISTRO, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify(payload) 
-        });
-        
-        console.log("✅ Acceso registrado en archivo independiente");
+        await fetch(SCRIPT_URL_REGISTRO, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        console.log("✅ Acceso registrado:", usuario.name);
     } catch (err) {
-        console.error("❌ Error registrando acceso:", err);
+        console.error("❌ Error:", err);
     }
 }
 
+// ===== INICIAR SISTEMA =====
 async function iniciarSistema() {
     try {
-        updateStatus("Cargando modelos faciales...", "fa-spinner fa-pulse");
+        updateStatus("Cargando modelos...", "fa-spinner fa-pulse");
+        await faceapi.nets.tinyFaceDetector.loadFromUri('.');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('.');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('.');
         
-        const path = '.';
-        await faceapi.nets.tinyFaceDetector.loadFromUri(path);
-        await faceapi.nets.faceLandmark68Net.loadFromUri(path);
-        await faceapi.nets.faceRecognitionNet.loadFromUri(path);
-        
-        updateStatus("Cargando base de datos de usuarios...", "fa-spinner fa-pulse");
+        updateStatus("Cargando usuarios...", "fa-spinner fa-pulse");
         await cargarUsuariosDesdeExcel();
-        cargandoUsuarios = false;
         
-        console.log("✅ Sistema listo");
-        console.log("📋 Usuarios registrados:", usuariosRegistrados.length);
-        console.log("📊 Registro de accesos se guardará en archivo SEPARADO");
-
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
         
         video.onplay = () => {
-            updateStatus("Sistema activo - Mostrando rostro", "fa-eye");
+            updateStatus("Sistema activo", "fa-eye");
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
-
+            
             setInterval(async () => {
-                const ahora = Date.now();
-                
                 if (deteccionEnProceso) {
-                    if (ultimaDeteccion) {
-                        dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize);
-                    }
+                    if (ultimaDeteccion) dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize);
                     return;
                 }
                 
                 deteccionEnProceso = true;
-                
                 const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
                     .withFaceDescriptors();
@@ -107,20 +77,15 @@ async function iniciarSistema() {
                 if (resized.length > 0) {
                     rostroEncontrado = true;
                     const rostro = resized[0];
-                    const descriptor = rostro.descriptor;
-                    const resultado = buscarCoincidencia(descriptor);
+                    const resultado = buscarCoincidencia(rostro.descriptor);
                     
                     if (resultado.label !== "Desconocido" && resultado.label !== "unknown") {
                         personaAutorizada = true;
                         datosPersona = resultado.datos;
                         ultimaDeteccion = { tipo: 'autorizado', datos: datosPersona, rostro: rostro };
-                        console.log("✅ AUTORIZADO:", resultado.label);
-                    } 
-                    else {
+                    } else {
                         ultimaDeteccion = { tipo: 'denegado', rostro: rostro };
-                        console.log("🔴 ACCESO DENEGADO - Rostro no registrado");
                     }
-                    
                     dibujarCuadroDeteccion(ctx, rostro, personaAutorizada);
                 } else {
                     ultimaDeteccion = null;
@@ -129,37 +94,29 @@ async function iniciarSistema() {
                 
                 if (personaAutorizada && datosPersona) {
                     mostrarTarjetaBienvenida(datosPersona);
-                } 
-                else if (rostroEncontrado && !personaAutorizada) {
+                } else if (rostroEncontrado && !personaAutorizada) {
                     mostrarTarjetaDenegada();
                 }
                 
                 if (rostroEncontrado) {
-                    tiempoUltimaDeteccion = ahora;
-                    
                     if (timeoutReactivacion) clearTimeout(timeoutReactivacion);
                     timeoutReactivacion = setTimeout(() => {
                         deteccionEnProceso = false;
-                        console.log("🔄 Sistema reactivado - Listo para nueva detección");
-                        updateStatus("Sistema activo - Listo para detectar", "fa-eye");
-                        
+                        updateStatus("Sistema activo", "fa-eye");
                         if (ultimaDeteccion) {
-                            const ctx = canvas.getContext('2d');
                             ctx.clearRect(0, 0, canvas.width, canvas.height);
                         }
                     }, tiempoEspera);
-                    
-                    updateStatus(`Acceso procesado - Esperando ${tiempoEspera/1000}s`, "fa-clock");
+                    updateStatus(`Esperando ${tiempoEspera/1000}s`, "fa-clock");
                 } else {
                     deteccionEnProceso = false;
                     if (timeoutReactivacion) clearTimeout(timeoutReactivacion);
                 }
-                
             }, 100);
         };
     } catch (err) {
         updateStatus("Error: " + err.message, "fa-exclamation-triangle");
-        console.error("Error:", err);
+        console.error(err);
     }
 }
 
@@ -167,100 +124,64 @@ function dibujarCuadroDeteccion(ctx, rostro, esAutorizado) {
     if (esAutorizado) {
         ctx.strokeStyle = "#2ecc71";
         ctx.lineWidth = 4;
-        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
-                     rostro.detection.box.width, rostro.detection.box.height);
-        ctx.font = "bold 16px 'Inter', sans-serif";
+        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, rostro.detection.box.width, rostro.detection.box.height);
         ctx.fillStyle = "#2ecc71";
+        ctx.font = "bold 16px 'Inter'";
         ctx.fillText("✓ AUTORIZADO", rostro.detection.box.x, rostro.detection.box.y - 8);
     } else {
         ctx.strokeStyle = "#e74c3c";
         ctx.lineWidth = 4;
-        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
-                     rostro.detection.box.width, rostro.detection.box.height);
-        ctx.font = "bold 16px 'Inter', sans-serif";
+        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, rostro.detection.box.width, rostro.detection.box.height);
         ctx.fillStyle = "#e74c3c";
+        ctx.font = "bold 16px 'Inter'";
         ctx.fillText("✗ ACCESO DENEGADO", rostro.detection.box.x, rostro.detection.box.y - 8);
     }
 }
 
 function dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize) {
     if (!ultimaDeteccion || !ultimaDeteccion.rostro) return;
-    
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    const esAutorizado = ultimaDeteccion.tipo === 'autorizado';
-    dibujarCuadroDeteccion(ctx, ultimaDeteccion.rostro, esAutorizado);
+    dibujarCuadroDeteccion(ctx, ultimaDeteccion.rostro, ultimaDeteccion.tipo === 'autorizado');
 }
 
-// Función con registro en archivo SEPARADO
 function mostrarTarjetaBienvenida(usuario) {
     if (timeoutOcultarCard) clearTimeout(timeoutOcultarCard);
-    
-    // === REGISTRAR EL ACCESO EN EL ARCHIVO SEPARADO ===
     registrarAccesoEnArchivoSeparado(usuario);
-    
     deniedCard.style.display = 'none';
-    
     welcomeName.textContent = usuario.name || "Usuario";
-    
     const companySpan = welcomeCompany.querySelector('span');
     companySpan.textContent = usuario.empresa || "No especificada";
-    
     userRut.textContent = usuario.rut || "No registrado";
     userRole.textContent = usuario.role || "No especificado";
-    
     welcomeCard.style.display = 'block';
-    
-    const statusEl = document.getElementById('status');
-    if (statusEl) statusEl.style.opacity = '0.5';
-    
-    console.log("🎉 ACCESO CONCEDIDO - Usuario:", usuario.name);
-    console.log("📊 Registro guardado en ARCHIVO SEPARADO de Google Sheets");
-    
-    timeoutOcultarCard = setTimeout(() => {
-        ocultarTarjetas();
-    }, 4000);
+    document.getElementById('status').style.opacity = '0.5';
+    timeoutOcultarCard = setTimeout(() => ocultarTarjetas(), 4000);
 }
 
 function mostrarTarjetaDenegada() {
     if (timeoutOcultarCard) clearTimeout(timeoutOcultarCard);
-    
     welcomeCard.style.display = 'none';
     deniedCard.style.display = 'block';
-    
-    const statusEl = document.getElementById('status');
-    if (statusEl) statusEl.style.opacity = '0.5';
-    
-    console.log("🔴 ACCESO DENEGADO - Usuario no registrado");
-    
-    timeoutOcultarCard = setTimeout(() => {
-        ocultarTarjetas();
-    }, 3000);
+    document.getElementById('status').style.opacity = '0.5';
+    timeoutOcultarCard = setTimeout(() => ocultarTarjetas(), 3000);
 }
 
 function ocultarTarjetas() {
     welcomeCard.style.display = 'none';
     deniedCard.style.display = 'none';
-    const statusEl = document.getElementById('status');
-    if (statusEl) statusEl.style.opacity = '1';
+    document.getElementById('status').style.opacity = '1';
 }
 
 function updateStatus(texto, icono) {
     const statusEl = document.getElementById('status');
-    if (statusEl) {
-        statusEl.innerHTML = `<i class="fas ${icono}"></i><span>${texto}</span>`;
-    }
+    if (statusEl) statusEl.innerHTML = `<i class="fas ${icono}"></i><span>${texto}</span>`;
 }
 
 async function cargarUsuariosDesdeExcel() {
     try {
-        // Usar la URL de USUARIOS (archivo principal)
         const response = await fetch(SCRIPT_URL_USUARIOS);
         const data = await response.json();
-        
-        console.log("📥 Datos recibidos del archivo USUARIOS:", data);
-        
         usuariosRegistrados = data.map(user => ({
             id: user.id,
             name: user.name,
@@ -269,49 +190,24 @@ async function cargarUsuariosDesdeExcel() {
             empresa: user.empresa,
             descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
         }));
-        
-        console.log("✅ Usuarios cargados correctamente:", usuariosRegistrados.length);
-        if (usuariosRegistrados.length > 0) {
-            console.log("📋 Lista de usuarios autorizados:");
-            usuariosRegistrados.forEach(u => console.log(`   👤 ${u.name} | 🏢 ${u.empresa} | 🆔 ${u.rut}`));
-            // Cargar la lista en el select después de cargar usuarios
-            cargarListaUsuariosEnSelect();
-        } else {
-            console.warn("⚠️ No hay usuarios registrados en la base de datos");
-            const select = document.getElementById('deleteUserSelect');
-            if (select) {
-                select.innerHTML = '<option value="">No hay usuarios registrados</option>';
-            }
-        }
+        console.log("✅ Usuarios cargados:", usuariosRegistrados.length);
+        cargarListaUsuariosEnSelect();
     } catch (e) {
-        console.error("❌ Error cargando usuarios:", e);
+        console.error("Error:", e);
         usuariosRegistrados = [];
     }
 }
 
 function buscarCoincidencia(descriptorActual) {
-    if (usuariosRegistrados.length === 0) {
-        return { label: "Desconocido", datos: null };
-    }
-
-    const labeledDescriptors = usuariosRegistrados.map(u => 
-        new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])
-    );
-    
+    if (usuariosRegistrados.length === 0) return { label: "Desconocido", datos: null };
+    const labeledDescriptors = usuariosRegistrados.map(u => new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor]));
     const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
     const bestMatch = faceMatcher.findBestMatch(descriptorActual);
-    
     if (bestMatch.label !== "unknown" && bestMatch.label !== "Desconocido") {
         const usuarioEncontrado = usuariosRegistrados.find(u => u.name === bestMatch.label);
-        console.log(`✅ Coincidencia encontrada: ${bestMatch.label} (distancia: ${bestMatch.distance})`);
-        return { 
-            label: bestMatch.label, 
-            datos: usuarioEncontrado 
-        };
-    } else {
-        console.log(`❌ Sin coincidencia - Rostro desconocido (distancia: ${bestMatch.distance})`);
-        return { label: "Desconocido", datos: null };
+        return { label: bestMatch.label, datos: usuarioEncontrado };
     }
+    return { label: "Desconocido", datos: null };
 }
 
 async function enviarANube() {
@@ -321,23 +217,19 @@ async function enviarANube() {
     const empresa = document.getElementById('personEmpresa').value;
     
     if (!rut || !name || !role || !empresa) {
-        alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa");
+        alert("❌ Completa todos los campos");
         return;
     }
     
-    // Validar formato de RUT chileno (opcional)
     const rutRegex = /^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/;
     if (!rutRegex.test(rut)) {
-        alert("⚠️ Formato de RUT inválido.\nEjemplo correcto: 12.345.678-9");
+        alert("⚠️ Formato de RUT inválido. Ej: 12.345.678-9");
         return;
     }
-
-    updateStatus("📸 Capturando rostro...", "fa-camera");
     
-    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-
+    updateStatus("Capturando rostro...", "fa-camera");
+    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    
     if (detection) {
         const payload = {
             id: Date.now().toString(),
@@ -347,86 +239,44 @@ async function enviarANube() {
             empresa: empresa.toUpperCase(),
             faceDescriptor: JSON.stringify(Array.from(detection.descriptor))
         };
-        
-        console.log("📤 Registrando nuevo usuario:", payload);
-        
-        // Usar la URL de USUARIOS para guardar el nuevo usuario
-        fetch(SCRIPT_URL_USUARIOS, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify(payload) 
-        })
-        .then(() => {
-            alert(`✅ ¡REGISTRO EXITOSO!\n\n👤 ${name}\n🆔 ${rut}\n💼 ${role}\n🏢 ${empresa}\n\n🔄 La página se recargará para actualizar la base de datos.`);
-            location.reload(); 
-        })
-        .catch(err => {
-            console.error("Error en registro:", err);
-            alert("❌ Error al registrar: " + err.message);
-        });
+        await fetch(SCRIPT_URL_USUARIOS, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        alert(`✅ Usuario ${name} registrado correctamente`);
+        location.reload();
     } else {
-        alert("❌ No se detectó ningún rostro. Asegúrate de estar mirando directamente a la cámara.");
+        alert("❌ No se detectó ningún rostro");
         updateStatus("No se detectó rostro", "fa-face-frown");
     }
 }
 
-// ===== FUNCIONES PARA ELIMINAR USUARIOS =====
-
-// Cargar lista de usuarios en el select
-async function cargarListaUsuariosEnSelect() {
-    try {
-        const select = document.getElementById('deleteUserSelect');
-        if (!select) return;
-        
-        if (usuariosRegistrados.length === 0) {
-            select.innerHTML = '<option value="">No hay usuarios registrados</option>';
-            return;
-        }
-        
-        select.innerHTML = '<option value="">Selecciona un usuario...</option>';
-        
-        usuariosRegistrados.forEach(usuario => {
-            const option = document.createElement('option');
-            option.value = JSON.stringify({
-                id: usuario.id,
-                rut: usuario.rut,
-                name: usuario.name,
-                empresa: usuario.empresa
-            });
-            option.textContent = `${usuario.name} | ${usuario.rut} | ${usuario.empresa}`;
-            select.appendChild(option);
-        });
-        
-        console.log("✅ Lista de usuarios cargada en el select");
-    } catch (error) {
-        console.error("Error cargando lista de usuarios:", error);
+// ===== ELIMINAR USUARIO =====
+function cargarListaUsuariosEnSelect() {
+    const select = document.getElementById('deleteUserSelect');
+    if (!select) return;
+    if (usuariosRegistrados.length === 0) {
+        select.innerHTML = '<option value="">No hay usuarios registrados</option>';
+        return;
     }
+    select.innerHTML = '<option value="">Selecciona un usuario...</option>';
+    usuariosRegistrados.forEach(usuario => {
+        const option = document.createElement('option');
+        option.value = JSON.stringify({ id: usuario.id, rut: usuario.rut, name: usuario.name, empresa: usuario.empresa });
+        option.textContent = `${usuario.name} | ${usuario.rut} | ${usuario.empresa}`;
+        select.appendChild(option);
+    });
 }
 
-// Mostrar modal de confirmación
 let usuarioAEliminar = null;
 
 function eliminarUsuario() {
     const select = document.getElementById('deleteUserSelect');
     const selectedValue = select.value;
-    
-    if (!selectedValue) {
-        alert("❌ Por favor, selecciona un usuario para eliminar");
+    if (!selectedValue || selectedValue === "No hay usuarios registrados") {
+        alert("❌ Selecciona un usuario para eliminar");
         return;
     }
-    
-    if (selectedValue === "No hay usuarios registrados" || selectedValue === "Cargando lista de usuarios...") {
-        alert("❌ No hay usuarios disponibles para eliminar");
-        return;
-    }
-    
     usuarioAEliminar = JSON.parse(selectedValue);
-    
-    // Mostrar modal de confirmación
     const modal = document.getElementById('confirmModal');
-    const confirmMessage = document.getElementById('confirmMessage');
-    confirmMessage.innerHTML = `¿Estás seguro de eliminar a <strong>${usuarioAEliminar.name}</strong><br>con RUT <strong>${usuarioAEliminar.rut}</strong>?<br><br><span style="color: #e74c3c;">⚠️ Esta acción no se puede deshacer</span>`;
-    
+    document.getElementById('confirmMessage').innerHTML = `¿Eliminar a <strong>${usuarioAEliminar.name}</strong><br>RUT: <strong>${usuarioAEliminar.rut}</strong>?<br><br><span style="color: #e74c3c;">⚠️ Esta acción no se puede deshacer</span>`;
     modal.style.display = 'flex';
 }
 
@@ -435,49 +285,20 @@ function cerrarModal() {
     usuarioAEliminar = null;
 }
 
-// Función para eliminar definitivamente
 async function confirmarEliminacion() {
     if (!usuarioAEliminar) return;
-    
     updateStatus("Eliminando usuario...", "fa-spinner fa-pulse");
-    
     try {
-        const payload = {
-            accion: 'delete',
-            id: usuarioAEliminar.id,
-            rut: usuarioAEliminar.rut
-        };
-        
-        console.log("📤 Eliminando usuario:", payload);
-        
-        const response = await fetch(SCRIPT_URL_USUARIOS, {
-            method: 'POST',
-            mode: 'cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`✅ ${result.message}\n\nUsuario: ${usuarioAEliminar.name}\nRUT: ${usuarioAEliminar.rut}`);
-            // Recargar la página para actualizar todo
-            location.reload();
-        } else {
-            alert(`❌ Error: ${result.message}`);
-            updateStatus("Error al eliminar", "fa-exclamation-triangle");
-        }
-        
+        const payload = { accion: 'delete', id: usuarioAEliminar.id, rut: usuarioAEliminar.rut };
+        await fetch(SCRIPT_URL_USUARIOS, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        alert(`✅ Usuario ${usuarioAEliminar.name} eliminado`);
+        location.reload();
     } catch (error) {
-        console.error("Error eliminando usuario:", error);
-        alert("❌ Error al conectar con el servidor: " + error.message);
-        updateStatus("Error de conexión", "fa-exclamation-triangle");
-    } finally {
-        cerrarModal();
+        console.error(error);
+        alert("⚠️ Recargando para verificar cambios...");
+        location.reload();
     }
+    cerrarModal();
 }
 
-// Iniciar el sistema
 iniciarSistema();
