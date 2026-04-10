@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Pulso Go! - Control de Acceso Profesional</title>
+    <title>Pulso Go! - Control de Acceso</title>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script defer src="script.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: linear-gradient(135deg, #0a0e1a 0%, #0f1422 100%);
             color: white;
@@ -25,32 +20,16 @@
             align-items: center;
             padding: 20px;
         }
-
-        .main-container {
-            width: 100%;
-            max-width: 500px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
+        .main-container { width: 100%; max-width: 500px; }
+        .header { text-align: center; margin-bottom: 25px; }
         .header h1 {
             font-size: 28px;
             font-weight: 800;
             background: linear-gradient(135deg, #3498db, #2ecc71);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
-
-        .header p {
-            font-size: 13px;
-            color: #6c7293;
-            margin-top: 5px;
-        }
-
+        .header p { font-size: 13px; color: #6c7293; margin-top: 5px; }
         .video-container {
             position: relative;
             border-radius: 24px;
@@ -59,22 +38,8 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(52, 152, 219, 0.3);
         }
-
-        video {
-            width: 100%;
-            display: block;
-            aspect-ratio: 4/3;
-            object-fit: cover;
-        }
-
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
+        video { width: 100%; display: block; aspect-ratio: 4/3; object-fit: cover; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -89,8 +54,6 @@
             color: #3498db;
             border: 1px solid rgba(52, 152, 219, 0.3);
         }
-
-        /* Tarjeta de Bienvenida */
         .welcome-card {
             display: none;
             margin-top: 20px;
@@ -101,7 +64,6 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
         }
-
         .card-header {
             background: linear-gradient(135deg, #2ecc71, #27ae60);
             padding: 16px 20px;
@@ -109,7 +71,6 @@
             align-items: center;
             justify-content: space-between;
         }
-
         .card-header .access-badge {
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(4px);
@@ -118,11 +79,7 @@
             font-size: 12px;
             font-weight: 600;
         }
-
-        .card-body {
-            padding: 24px;
-        }
-
+        .card-body { padding: 24px; }
         .user-info {
             display: flex;
             align-items: center;
@@ -131,7 +88,6 @@
             padding-bottom: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-
         .user-avatar {
             width: 60px;
             height: 60px;
@@ -142,26 +98,9 @@
             justify-content: center;
             font-size: 28px;
         }
-
-        .user-details {
-            flex: 1;
-        }
-
-        .user-name {
-            font-size: 20px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 4px;
-        }
-
-        .user-company {
-            font-size: 13px;
-            color: #2ecc71;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
+        .user-details { flex: 1; }
+        .user-name { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .user-company { font-size: 13px; color: #2ecc71; display: flex; align-items: center; gap: 6px; }
         .info-row {
             display: flex;
             align-items: center;
@@ -171,27 +110,9 @@
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
         }
-
-        .info-label {
-            font-size: 12px;
-            color: #8b8faa;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .info-label i {
-            width: 18px;
-            font-size: 12px;
-            color: #2ecc71;
-        }
-
-        .info-value {
-            font-size: 13px;
-            font-weight: 600;
-            color: #fff;
-        }
-
+        .info-label { font-size: 12px; color: #8b8faa; display: flex; align-items: center; gap: 8px; }
+        .info-label i { width: 18px; font-size: 12px; color: #2ecc71; }
+        .info-value { font-size: 13px; font-weight: 600; color: #fff; }
         .access-status {
             margin-top: 16px;
             padding: 12px;
@@ -203,19 +124,8 @@
             justify-content: center;
             gap: 10px;
         }
-
-        .access-status i {
-            font-size: 20px;
-            color: #2ecc71;
-        }
-
-        .access-status span {
-            font-size: 14px;
-            font-weight: 600;
-            color: #2ecc71;
-        }
-
-        /* Tarjeta Denegada */
+        .access-status i { font-size: 20px; color: #2ecc71; }
+        .access-status span { font-size: 14px; font-weight: 600; color: #2ecc71; }
         .denied-card {
             display: none;
             margin-top: 20px;
@@ -225,30 +135,14 @@
             border: 1px solid rgba(231, 76, 60, 0.3);
             animation: shake 0.5s ease-in-out;
         }
-
         .denied-header {
             background: linear-gradient(135deg, #e74c3c, #c0392b);
             padding: 16px 20px;
             text-align: center;
         }
-
-        .denied-body {
-            padding: 32px 24px;
-            text-align: center;
-        }
-
-        .denied-body h3 {
-            font-size: 24px;
-            color: #e74c3c;
-            margin-bottom: 8px;
-        }
-
-        .denied-body p {
-            color: #a0a0a0;
-            font-size: 14px;
-        }
-
-        /* Formulario de Registro */
+        .denied-body { padding: 32px 24px; text-align: center; }
+        .denied-body h3 { font-size: 24px; color: #e74c3c; margin-bottom: 8px; }
+        .denied-body p { color: #a0a0a0; font-size: 14px; }
         .register-card {
             margin-top: 24px;
             background: rgba(26, 31, 46, 0.8);
@@ -257,7 +151,6 @@
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         .register-card h3 {
             font-size: 16px;
             font-weight: 600;
@@ -267,11 +160,7 @@
             gap: 8px;
             color: #b0b0b0;
         }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
+        .form-group { margin-bottom: 12px; }
         .form-group input {
             width: 100%;
             padding: 14px 16px;
@@ -281,19 +170,13 @@
             color: white;
             font-family: 'Inter', sans-serif;
             font-size: 14px;
-            transition: all 0.2s;
         }
-
         .form-group input:focus {
             outline: none;
             border-color: #3498db;
             background: rgba(15, 20, 34, 1);
         }
-
-        .form-group input::placeholder {
-            color: #4a4f6e;
-        }
-
+        .form-group input::placeholder { color: #4a4f6e; }
         .btn-register {
             width: 100%;
             padding: 14px;
@@ -304,23 +187,19 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
         }
-
         .btn-register:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
         }
-
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
@@ -347,7 +226,6 @@
             </div>
         </div>
 
-        <!-- Tarjeta de Bienvenida (Autorizado) -->
         <div class="welcome-card" id="welcome-card">
             <div class="card-header">
                 <span class="access-badge"><i class="fas fa-check-circle"></i> ACCESO AUTORIZADO</span>
@@ -355,15 +233,10 @@
             </div>
             <div class="card-body">
                 <div class="user-info">
-                    <div class="user-avatar">
-                        <i class="fas fa-user-check"></i>
-                    </div>
+                    <div class="user-avatar"><i class="fas fa-user-check"></i></div>
                     <div class="user-details">
                         <div class="user-name" id="welcome-name">Cargando...</div>
-                        <div class="user-company" id="welcome-company">
-                            <i class="fas fa-building"></i>
-                            <span>Cargando...</span>
-                        </div>
+                        <div class="user-company" id="welcome-company"><i class="fas fa-building"></i><span>Cargando...</span></div>
                     </div>
                 </div>
                 <div class="info-row">
@@ -378,18 +251,12 @@
                     <div class="info-label"><i class="fas fa-map-marker-alt"></i><span>Instalación</span></div>
                     <div class="info-value" id="user-instalacion">---</div>
                 </div>
-                <div class="access-status">
-                    <i class="fas fa-check-circle"></i>
-                    <span>ACCESO CONCEDIDO</span>
-                </div>
+                <div class="access-status"><i class="fas fa-check-circle"></i><span>ACCESO CONCEDIDO</span></div>
             </div>
         </div>
 
-        <!-- Tarjeta de Acceso Denegado -->
         <div class="denied-card" id="denied-card">
-            <div class="denied-header">
-                <i class="fas fa-ban"></i>
-            </div>
+            <div class="denied-header"><i class="fas fa-ban"></i></div>
             <div class="denied-body">
                 <i class="fas fa-user-slash" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px; display: block;"></i>
                 <h3>ACCESO DENEGADO</h3>
@@ -397,27 +264,14 @@
             </div>
         </div>
 
-        <!-- Formulario de Registro - ORDEN: RUT, NOMBRE, CARGO, EMPRESA, INSTALACION -->
         <div class="register-card">
             <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
-            <div class="form-group">
-                <input type="text" id="personRut" placeholder="RUT / DNI (Ej: 12.345.678-9)">
-            </div>
-            <div class="form-group">
-                <input type="text" id="personName" placeholder="Nombre Completo">
-            </div>
-            <div class="form-group">
-                <input type="text" id="personRole" placeholder="Cargo / Puesto">
-            </div>
-            <div class="form-group">
-                <input type="text" id="personEmpresa" placeholder="Empresa">
-            </div>
-            <div class="form-group">
-                <input type="text" id="personInstalacion" placeholder="Instalación (Ej: Fábrica, Bodega, Mall, Oficina)">
-            </div>
-            <button class="btn-register" onclick="enviarANube()">
-                <i class="fas fa-save"></i> Guardar Registro
-            </button>
+            <div class="form-group"><input type="text" id="personRut" placeholder="RUT / DNI (Ej: 12.345.678-9)"></div>
+            <div class="form-group"><input type="text" id="personName" placeholder="Nombre Completo"></div>
+            <div class="form-group"><input type="text" id="personRole" placeholder="Cargo / Puesto"></div>
+            <div class="form-group"><input type="text" id="personEmpresa" placeholder="Empresa"></div>
+            <div class="form-group"><input type="text" id="personInstalacion" placeholder="Instalación (Ej: Fábrica, Bodega, Mall)"></div>
+            <button class="btn-register" onclick="enviarANube()"><i class="fas fa-save"></i> Guardar Registro</button>
         </div>
     </div>
 </body>
