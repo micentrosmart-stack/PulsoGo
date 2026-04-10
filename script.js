@@ -12,7 +12,7 @@ const welcomeName = document.getElementById('welcome-name');
 const welcomeCompany = document.getElementById('welcome-company');
 const userRut = document.getElementById('user-rut');
 const userRole = document.getElementById('user-role');
-const userInstalacion = document.getElementById('user-instalacion'); // NUEVO
+const userInstalacion = document.getElementById('user-instalacion');
 
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
@@ -22,7 +22,7 @@ let tiempoEspera = 4000;
 let deteccionEnProceso = false;
 let timeoutReactivacion = null;
 
-// Registrar acceso con INSTALACIÓN
+// Registrar acceso
 async function registrarAccesoEnArchivoSeparado(usuario) {
     try {
         const payload = {
@@ -31,7 +31,7 @@ async function registrarAccesoEnArchivoSeparado(usuario) {
             name: usuario.name,
             role: usuario.role,
             empresa: usuario.empresa,
-            instalacion: usuario.instalacion,  // NUEVO
+            instalacion: usuario.instalacion,
             fecha: new Date().toISOString()
         };
         
@@ -183,7 +183,7 @@ function mostrarTarjetaBienvenida(usuario) {
     
     userRut.textContent = usuario.rut || "No registrado";
     userRole.textContent = usuario.role || "No especificado";
-    userInstalacion.textContent = usuario.instalacion || "No especificada";  // NUEVO
+    userInstalacion.textContent = usuario.instalacion || "No especificada";
     
     welcomeCard.style.display = 'block';
     
@@ -229,7 +229,7 @@ async function cargarUsuariosDesdeExcel() {
             rut: user.rut,
             role: user.role,
             empresa: user.empresa,
-            instalacion: user.instalacion,  // NUEVO
+            instalacion: user.instalacion,
             descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
         }));
         
@@ -264,8 +264,15 @@ async function enviarANube() {
     const empresa = document.getElementById('personEmpresa').value;
     const instalacion = document.getElementById('personInstalacion').value;
     
+    console.log("📝 Datos del formulario:");
+    console.log("  RUT:", rut);
+    console.log("  Nombre:", name);
+    console.log("  Cargo:", role);
+    console.log("  Empresa:", empresa);
+    console.log("  Instalación:", instalacion);
+    
     if (!rut || !name || !role || !empresa || !instalacion) {
-        alert("❌ Completa TODOS los campos, incluyendo Instalación");
+        alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa\n- Instalación");
         return;
     }
 
@@ -282,9 +289,11 @@ async function enviarANube() {
             name: name.toUpperCase(),
             role: role,
             empresa: empresa.toUpperCase(),
-            instalacion: instalacion,  // NUEVO
+            instalacion: instalacion,
             faceDescriptor: JSON.stringify(Array.from(detection.descriptor))
         };
+        
+        console.log("📤 Enviando payload:", payload);
         
         fetch(SCRIPT_URL_USUARIOS, { 
             method: 'POST', 
@@ -294,9 +303,14 @@ async function enviarANube() {
         .then(() => {
             alert(`✅ REGISTRO EXITOSO!\n\n👤 ${name}\n🏭 ${instalacion}\n🔄 Recargando...`);
             location.reload();
+        })
+        .catch(err => {
+            console.error("❌ Error:", err);
+            alert("❌ Error al registrar: " + err.message);
         });
     } else {
-        alert("❌ No se detectó ningún rostro");
+        alert("❌ No se detectó ningún rostro. Asegúrate de estar mirando directamente a la cámara.");
+        updateStatus("No se detectó rostro", "fa-face-frown");
     }
 }
 
