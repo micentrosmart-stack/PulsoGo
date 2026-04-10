@@ -15,59 +15,78 @@ const historyList = document.getElementById('history-list');
 
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
-let ultimoAcceso = new Map(); // Para evitar registros duplicados (cooldown de 5 segundos)
+let ultimoAcceso = new Map();
 let historialLocal = [];
+let audioContext = null;
+let sonidosInicializados = false;
 
-// ========== SISTEMA DE SONIDOS ==========
-const sonidoExitoso = new Audio('data:audio/wav;base64,U3RlYWx0aCBzb3VuZCBiYXNlNjQgLSBCZWVwIGV4aXRvc28=');
-const sonidoFallido = new Audio('data:audio/wav;base64,U3RlYWx0aCBzb3VuZCBiYXNlNjQgLSBCZWVwIGZhbGxpZG8=');
-
-// Función para generar sonido de éxito (beep agradable)
-function reproducirExito() {
+// ========== INICIALIZAR SONIDOS (requiere clic del usuario) ==========
+function inicializarSonidos() {
+    if (sonidosInicializados) return;
+    
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.frequency.value = 880; // Nota La5
-        gainNode.gain.value = 0.3;
-        
-        oscillator.start();
-        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5);
-        oscillator.stop(audioCtx.currentTime + 0.5);
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        sonidosInicializados = true;
+        console.log("✅ Sistema de sonidos inicializado");
     } catch(e) {
-        console.log("Audio no soportado");
+        console.log("Error inicializando audio:", e);
     }
 }
 
-// Función para generar sonido de fallo (buzzer grave)
-function reproducirFallo() {
+// Sonido de ÉXITO (acceso permitido)
+function reproducirExito() {
+    if (!sonidosInicializados || !audioContext) return;
+    
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
+        // Reactivar si está suspendido
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
         
         oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
+        gainNode.connect(audioContext.destination);
         
-        oscillator.frequency.value = 220; // Nota A3 (grave)
+        oscillator.frequency.value = 880;
+        gainNode.gain.value = 0.3;
+        
+        oscillator.start();
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.4);
+        oscillator.stop(audioContext.currentTime + 0.4);
+    } catch(e) {
+        console.log("Error reproduciendo éxito:", e);
+    }
+}
+
+// Sonido de FALLO (acceso denegado)
+function reproducirFallo() {
+    if (!sonidosInicializados || !audioContext) return;
+    
+    try {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 220;
         gainNode.gain.value = 0.4;
         
-        // Sonido tipo "buzzer" con vibrato rápido
         oscillator.start();
-        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.8);
         
-        // Cambiar frecuencia para efecto de "error"
-        setTimeout(() => {
-            oscillator.frequency.value = 180;
-        }, 200);
+        // Efecto de descenso para sonido de error
+        oscillator.frequency.exponentialRampToValue(150, audioContext.currentTime + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.6);
         
-        oscillator.stop(audioCtx.currentTime + 0.8);
+        oscillator.stop(audioContext.currentTime + 0.6);
     } catch(e) {
-        console.log("Audio no soportado");
+        console.log("Error reproduciendo fallo:", e);
     }
 }
 
@@ -80,19 +99,16 @@ function agregarAlHistorial(nombre, tipo, mensaje) {
     const registro = {
         id: Date.now(),
         nombre: nombre,
-        tipo: tipo, // 'entry', 'exit', 'denied'
+        tipo: tipo,
         mensaje: mensaje,
         hora: horaStr,
         fecha: fechaStr,
         timestamp: ahora
     };
     
-    historialLocal.unshift(registro); // Agregar al inicio
-    if (historialLocal.length > 50) historialLocal.pop(); // Mantener últimos 50
-    
+    historialLocal.unshift(registro);
+    if (historialLocal.length > 50) historialLocal.pop();
     actualizarHistorialUI();
-    
-    // Enviar a Google Sheets (opcional)
     enviarRegistroANube(registro);
 }
 
@@ -146,53 +162,47 @@ async function enviarRegistroANube(registro) {
     }
 }
 
-// ========== CONTROL DE ENTRADA/SALIDA ==========
-let estadoUsuarios = new Map(); // Guarda el último estado (entrada/salida) de cada usuario
+// ========== CONTROL DE ACCESO CORREGIDO ==========
+let estadoUsuarios = new Map();
 
-async function procesarAcceso(nombre, descriptor) {
+// ✅ FUNCIÓN PARA ACCESO PERMITIDO (SOLO REGISTRADOS)
+async function procesarAccesoPermitido(nombre, descriptor) {
     const ahora = Date.now();
     const ultimo = ultimoAcceso.get(nombre);
     
-    // Cooldown de 3 segundos para evitar múltiples registros
     if (ultimo && (ahora - ultimo) < 3000) {
         return;
     }
     ultimoAcceso.set(nombre, ahora);
     
-    // Obtener estado actual del usuario
     let estadoActual = estadoUsuarios.get(nombre) || 'fuera';
-    
     let tipoAcceso = '';
     let mensaje = '';
     
     if (estadoActual === 'fuera') {
-        // REGISTRO DE ENTRADA
         tipoAcceso = 'entry';
         mensaje = 'Entrada registrada';
         estadoUsuarios.set(nombre, 'dentro');
         actionText.style.color = '#2ecc71';
         actionText.innerHTML = '✅ ENTRADA REGISTRADA ✅';
-        timestampText.innerHTML = `🕐 ${new Date().toLocaleTimeString()}`;
     } else {
-        // REGISTRO DE SALIDA
         tipoAcceso = 'exit';
         mensaje = 'Salida registrada';
         estadoUsuarios.set(nombre, 'fuera');
         actionText.style.color = '#e74c3c';
         actionText.innerHTML = '🚪 SALIDA REGISTRADA 🚪';
-        timestampText.innerHTML = `🕐 ${new Date().toLocaleTimeString()}`;
     }
     
-    // Mostrar panel y agregar al historial
-    welcomeMessage.innerHTML = `Bienvenido, ${nombre}`;
+    // Mostrar panel VERDE solo para AUTORIZADOS
+    welcomeMessage.innerHTML = `${nombre}`;
     welcomePanel.style.display = 'block';
     statusDiv.style.display = 'none';
     deniedPanel.style.display = 'none';
+    timestampText.innerHTML = `🕐 ${new Date().toLocaleTimeString()}`;
     
     agregarAlHistorial(nombre, tipoAcceso, mensaje);
-    reproducirExito(); // Sonido de éxito
+    reproducirExito(); // 🔊 Sonido de éxito
     
-    // Ocultar panel después de 3 segundos
     setTimeout(() => {
         if (welcomePanel.style.display === 'block') {
             welcomePanel.style.display = 'none';
@@ -201,22 +211,23 @@ async function procesarAcceso(nombre, descriptor) {
     }, 3000);
 }
 
+// ❌ FUNCIÓN PARA ACCESO DENEGADO (NO REGISTRADOS)
 function procesarAccesoDenegado() {
     const ahora = Date.now();
     const ultimoDenegado = ultimoAcceso.get('_denied_');
     
-    // Cooldown para denegados (2 segundos)
     if (ultimoDenegado && (ahora - ultimoDenegado) < 2000) {
         return;
     }
     ultimoAcceso.set('_denied_', ahora);
     
+    // Mostrar panel ROJO solo para NO AUTORIZADOS
     deniedPanel.style.display = 'block';
     welcomePanel.style.display = 'none';
     statusDiv.style.display = 'none';
     
-    agregarAlHistorial('Desconocido', 'denied', 'Intento de acceso con rostro no registrado');
-    reproducirFallo(); // Sonido de fallo
+    agregarAlHistorial('❌ DESCONOCIDO', 'denied', 'ACCESO DENEGADO - Rostro no registrado');
+    reproducirFallo(); // 🔊 Sonido de fallo
     
     setTimeout(() => {
         if (deniedPanel.style.display === 'block') {
@@ -229,26 +240,24 @@ function procesarAccesoDenegado() {
 // ========== INICIALIZACIÓN DEL SISTEMA ==========
 async function iniciarSistema() {
     try {
-        statusDiv.innerText = "Cargando cerebro facial...";
+        statusDiv.innerText = "🔄 Cargando cerebro facial...";
         
-        // Cargar modelos
         const path = '.';
         await faceapi.nets.tinyFaceDetector.loadFromUri(path);
         await faceapi.nets.faceLandmark68Net.loadFromUri(path);
         await faceapi.nets.faceRecognitionNet.loadFromUri(path);
         
-        statusDiv.innerText = "Sincronizando con base de datos...";
+        statusDiv.innerText = "📡 Sincronizando con base de datos...";
         await cargarUsuariosDesdeExcel();
         cargandoUsuarios = false;
         
-        // Cargar historial previo desde el servidor (opcional)
         await cargarHistorialDesdeNube();
         
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
         
         video.onplay = () => {
-            statusDiv.innerText = "Sistema de Control de Acceso Activo";
+            statusDiv.innerText = "✅ SISTEMA ACTIVO - Esperando rostro";
             statusDiv.style.color = "#3498db";
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
@@ -262,23 +271,27 @@ async function iniciarSistema() {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                let rostroReconocido = false;
+                let accesoPermitido = false;
+                let rostroProcesado = false;
                 
                 for (const detection of resized) {
                     const bestMatch = buscarCoincidencia(detection.descriptor);
                     
                     if (bestMatch.label !== "Desconocido") {
-                        rostroReconocido = true;
-                        await procesarAcceso(bestMatch.label, detection.descriptor);
+                        // ✅ PERSONA REGISTRADA
+                        accesoPermitido = true;
+                        rostroProcesado = true;
+                        await procesarAccesoPermitido(bestMatch.label, detection.descriptor);
                         
                         // Dibujar cuadro VERDE
                         ctx.strokeStyle = "#2ecc71";
                         ctx.lineWidth = 5;
                         ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
                                      detection.detection.box.width, detection.detection.box.height);
-                        break; // Procesar solo el primer rostro detectado
+                        break; // Solo procesar el primer rostro reconocido
                     } else {
-                        // Dibujar cuadro ROJO para desconocidos
+                        // ❌ PERSONA NO REGISTRADA - Solo dibujar cuadro ROJO
+                        rostroProcesado = true;
                         ctx.strokeStyle = "#e74c3c";
                         ctx.lineWidth = 4;
                         ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
@@ -286,19 +299,15 @@ async function iniciarSistema() {
                     }
                 }
                 
-                if (!rostroReconocido && resized.length > 0) {
+                // Si se detectaron rostros pero NINGUNO fue registrado → ACCESO DENEGADO
+                if (rostroProcesado && !accesoPermitido) {
                     procesarAccesoDenegado();
-                } else if (resized.length === 0) {
-                    // No hay rostros, asegurar que los paneles estén ocultos
-                    if (welcomePanel.style.display === 'block' || deniedPanel.style.display === 'block') {
-                        // No hacer nada, dejar que los timers los oculten
-                    }
                 }
                 
-            }, 150);
+            }, 200);
         };
     } catch (err) {
-        statusDiv.innerText = "Error: " + err.message;
+        statusDiv.innerText = "❌ Error: " + err.message;
         statusDiv.style.color = "red";
     }
 }
@@ -312,7 +321,10 @@ async function cargarUsuariosDesdeExcel() {
             role: user.role || "Usuario",
             descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
         }));
-        console.log("Usuarios cargados:", usuariosRegistrados.length);
+        console.log("✅ Usuarios registrados cargados:", usuariosRegistrados.length);
+        if (usuariosRegistrados.length === 0) {
+            console.warn("⚠️ No hay usuarios registrados en la base de datos");
+        }
     } catch (e) {
         console.error("Error cargando usuarios:", e);
         usuariosRegistrados = [];
@@ -333,7 +345,9 @@ async function cargarHistorialDesdeNube() {
 }
 
 function buscarCoincidencia(descriptorActual) {
-    if (usuariosRegistrados.length === 0 || cargandoUsuarios) return { label: "Desconocido" };
+    if (usuariosRegistrados.length === 0 || cargandoUsuarios) {
+        return { label: "Desconocido" };
+    }
     
     const faceMatcher = new faceapi.FaceMatcher(
         usuariosRegistrados.map(u => new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])),
@@ -344,8 +358,11 @@ function buscarCoincidencia(descriptorActual) {
     return { label: bestMatch.label };
 }
 
-// Función de registro
+// ========== REGISTRO DE NUEVOS USUARIOS ==========
 async function enviarANube() {
+    // IMPORTANTE: Inicializar sonidos al primer clic del usuario
+    inicializarSonidos();
+    
     const name = document.getElementById('personName').value;
     const role = document.getElementById('personRole').value;
     if (!name || !role) return alert("❌ Completa todos los datos");
@@ -376,6 +393,12 @@ async function enviarANube() {
         alert("❌ No se detectó ningún rostro. Asegúrate de estar frente a la cámara.");
     }
 }
+
+// Inicializar sonidos cuando el usuario interactúe con la página
+document.body.addEventListener('click', function activarSonidos() {
+    inicializarSonidos();
+    document.body.removeEventListener('click', activarSonidos);
+});
 
 // Iniciar el sistema
 iniciarSistema();
