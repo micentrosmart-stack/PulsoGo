@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulso Go! - Sistema Facial</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <script defer src="script.js"></script>
+    <style>
+        body { margin: 0; background: #121621; color: white; font-family: sans-serif; text-align: center; }
+        .video-box { position: relative; width: 100%; max-width: 450px; margin: 20px auto; border: 2px solid #3498db; border-radius: 10px; overflow: hidden; }
+        video { width: 100%; display: block; background: #000; }
+        canvas { position: absolute; top: 0; left: 0; }
+        #status { padding: 15px; background: #1a1f2c; border-bottom: 1px solid #3498db; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div id="status">Iniciando sistema...</div>
+    <div class="video-box">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+    </div>
+</body>
+</html>
