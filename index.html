@@ -177,46 +177,6 @@
             background: rgba(15, 20, 34, 1);
         }
         .form-group input::placeholder { color: #4a4f6e; }
-        .search-box { position: relative; }
-        .search-box i {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c7293;
-        }
-        .search-box input { padding-left: 42px; }
-        .user-list-container {
-            max-height: 250px;
-            overflow-y: auto;
-            margin-bottom: 12px;
-            border-radius: 14px;
-        }
-        .user-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            margin: 6px 0;
-            background: rgba(26, 31, 46, 0.9);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .user-item:hover { background: rgba(52, 152, 219, 0.2); transform: translateX(4px); }
-        .user-item.selected { background: rgba(52, 152, 219, 0.3); border: 1px solid #3498db; }
-        .user-item-name { font-weight: 600; font-size: 14px; }
-        .user-item-rut { font-size: 11px; color: #8b8faa; margin-top: 2px; }
-        .user-item-empresa { font-size: 11px; color: #2ecc71; margin-top: 2px; }
-        .user-item-delete {
-            background: rgba(231, 76, 60, 0.2);
-            color: #e74c3c;
-            border: none;
-            border-radius: 8px;
-            padding: 6px 12px;
-            cursor: pointer;
-        }
-        .user-item-delete:hover { background: #e74c3c; color: white; }
         .btn-register {
             width: 100%;
             padding: 14px;
@@ -231,49 +191,11 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            transition: all 0.3s ease;
         }
         .btn-register:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
         }
-        .btn-delete { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .btn-delete:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: #1a1f2e;
-            border-radius: 24px;
-            padding: 32px;
-            max-width: 400px;
-            margin: 20px;
-            text-align: center;
-            border: 1px solid rgba(231, 76, 60, 0.3);
-        }
-        .modal-content h3 { margin-bottom: 16px; }
-        .modal-content p { color: #8b8faa; margin-bottom: 24px; }
-        .modal-buttons { display: flex; gap: 12px; }
-        .modal-buttons button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .btn-cancel { background: #2c3e50; color: white; }
-        .btn-confirm { background: #e74c3c; color: white; }
-        .empty-message { padding: 20px; text-align: center; color: #6c7293; }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -283,9 +205,6 @@
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #3498db; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -341,7 +260,6 @@
             </div>
         </div>
 
-        <!-- REGISTRAR USUARIO -->
         <div class="register-card">
             <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
             <div class="form-group"><input type="text" id="personRut" placeholder="RUT / DNI (Ej: 12.345.678-9)"></div>
@@ -349,32 +267,6 @@
             <div class="form-group"><input type="text" id="personRole" placeholder="Cargo / Puesto"></div>
             <div class="form-group"><input type="text" id="personEmpresa" placeholder="Empresa"></div>
             <button class="btn-register" onclick="enviarANube()"><i class="fas fa-save"></i> Guardar Registro</button>
-        </div>
-
-        <!-- ELIMINAR USUARIO -->
-        <div class="register-card">
-            <h3><i class="fas fa-trash-alt"></i> Eliminar Usuario</h3>
-            <div class="form-group search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchUser" placeholder="Buscar por nombre, RUT o empresa..." onkeyup="filtrarUsuarios()">
-            </div>
-            <div class="user-list-container" id="userList"></div>
-            <button class="btn-register btn-delete" id="btnEliminar" onclick="abrirModalEliminarSeleccionado()" disabled>
-                <i class="fas fa-user-minus"></i> Eliminar Usuario Seleccionado
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px;"></i>
-            <h3>¿Confirmar eliminación?</h3>
-            <p id="confirmMessage"></p>
-            <div class="modal-buttons">
-                <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
-                <button class="btn-confirm" id="confirmDeleteBtn">Eliminar</button>
-            </div>
         </div>
     </div>
 </body>
