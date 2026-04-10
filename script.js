@@ -1,4 +1,4 @@
-// TU URL DE GOOGLE APPS SCRIPT
+// TU URL DE GOOGLE APPS SCRIPT (REEMPLAZA CON TU URL)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxa6O9kgejvCaD_A7gsgMtsWoVML5LfSqXoyG6lKKrGze1QTfnNQMk_-reGgPjOh5txRA/exec";
 
 const video = document.getElementById('video');
@@ -15,11 +15,11 @@ const historyList = document.getElementById('history-list');
 
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
-let ultimoRegistro = new Map(); // Control de pausa de 4 segundos por persona
+let ultimoRegistro = new Map();
 let historialLocal = [];
 let audioContext = null;
 let sonidosInicializados = false;
-let procesando = false; // Evita procesamiento múltiple simultáneo
+let procesando = false;
 
 // ========== INICIALIZAR SONIDOS ==========
 function inicializarSonidos() {
@@ -34,7 +34,7 @@ function inicializarSonidos() {
     }
 }
 
-// Sonido de ÉXITO (acceso permitido)
+// Sonido de ÉXITO
 function reproducirExito() {
     if (!sonidosInicializados || !audioContext) return;
     
@@ -56,11 +56,11 @@ function reproducirExito() {
         gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.4);
         oscillator.stop(audioContext.currentTime + 0.4);
     } catch(e) {
-        console.log("Error reproduciendo éxito:", e);
+        console.log("Error:", e);
     }
 }
 
-// Sonido de FALLO (acceso denegado)
+// Sonido de FALLO
 function reproducirFallo() {
     if (!sonidosInicializados || !audioContext) return;
     
@@ -84,15 +84,152 @@ function reproducirFallo() {
         
         oscillator.stop(audioContext.currentTime + 0.6);
     } catch(e) {
-        console.log("Error reproduciendo fallo:", e);
+        console.log("Error:", e);
     }
 }
 
-// ========== FUNCIONES DE HISTORIAL ==========
+// ========== FUNCIONES DE GOOGLE SHEETS ==========
+
+// Guardar registro de acceso en Google Sheets
+async function guardarRegistroAcceso(nombre, tipo, mensaje) {
+    try {
+        const ahora = new Date();
+        const horaStr = ahora.toLocaleTimeString('es-ES');
+        const fechaStr = ahora.toLocaleDateString('es-ES');
+        
+        const payload = {
+            action: 'registrarAcceso',
+            nombre: nombre,
+            tipo: tipo,
+            mensaje: mensaje,
+            hora: horaStr,
+            fecha: fechaStr,
+            timestamp: ahora.toISOString()
+        };
+        
+        // Usar POST con modo cors para mejor compatibilidad
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            console.log("✅ Registro guardado en Google Sheets");
+        } else {
+            console.log("⚠️ No se pudo guardar en Google Sheets");
+        }
+    } catch(e) {
+        console.log("Error guardando registro:", e);
+    }
+}
+
+// Cargar usuarios desde Google Sheets
+async function cargarUsuariosDesdeExcel() {
+    try {
+        statusDiv.innerText = "📡 Cargando usuarios desde Google Sheets...";
+        
+        const response = await fetch(`${SCRIPT_URL}?action=getUsuarios`, {
+            method: 'GET',
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.usuarios) {
+            usuariosRegistrados = data.usuarios.map(user => ({
+                name: user.name,
+                role: user.role || "Usuario",
+                descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
+            }));
+            console.log(`✅ ${usuariosRegistrados.length} usuarios cargados desde Google Sheets`);
+            statusDiv.innerText = `✅ ${usuariosRegistrados.length} usuarios registrados`;
+        } else {
+            console.warn("⚠️ No hay usuarios en la base de datos");
+            usuariosRegistrados = [];
+            statusDiv.innerText = "⚠️ Sin usuarios registrados";
+        }
+    } catch (e) {
+        console.error("Error cargando usuarios:", e);
+        usuariosRegistrados = [];
+        statusDiv.innerText = "⚠️ Error al cargar usuarios";
+    }
+}
+
+// Registrar nuevo usuario en Google Sheets
+async function enviarANube() {
+    inicializarSonidos();
+    
+    const name = document.getElementById('personName').value;
+    const role = document.getElementById('personRole').value;
+    
+    if (!name || !role) {
+        alert("❌ Completa todos los datos");
+        return;
+    }
+    
+    statusDiv.innerText = "📸 Capturando rostro...";
+    
+    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+    
+    if (!detection) {
+        alert("❌ No se detectó ningún rostro. Asegúrate de estar frente a la cámara.");
+        statusDiv.innerText = "❌ No se detectó rostro";
+        return;
+    }
+    
+    statusDiv.innerText = "💾 Guardando en Google Sheets...";
+    
+    const payload = {
+        action: 'registrarUsuario',
+        id: Date.now().toString(),
+        name: name,
+        role: role,
+        faceDescriptor: JSON.stringify(Array.from(detection.descriptor))
+    };
+    
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                alert(`✅ ¡Usuario ${name} registrado exitosamente en Google Sheets!`);
+                location.reload();
+            } else {
+                alert(`❌ Error: ${result.error}`);
+            }
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+    } catch (e) {
+        console.error("Error al registrar:", e);
+        alert("❌ Error al conectar con Google Sheets. Verifica la URL.");
+        statusDiv.innerText = "❌ Error de conexión";
+    }
+}
+
+// ========== CONTROL DE ACCESO ==========
+
 function agregarAlHistorial(nombre, tipo, mensaje) {
     const ahora = new Date();
     const horaStr = ahora.toLocaleTimeString('es-ES');
-    const fechaStr = ahora.toLocaleDateString('es-ES');
     
     const registro = {
         id: Date.now(),
@@ -100,14 +237,15 @@ function agregarAlHistorial(nombre, tipo, mensaje) {
         tipo: tipo,
         mensaje: mensaje,
         hora: horaStr,
-        fecha: fechaStr,
         timestamp: ahora
     };
     
     historialLocal.unshift(registro);
     if (historialLocal.length > 50) historialLocal.pop();
     actualizarHistorialUI();
-    enviarRegistroANube(registro);
+    
+    // Guardar en Google Sheets
+    guardarRegistroAcceso(nombre, tipo, mensaje);
 }
 
 function actualizarHistorialUI() {
@@ -117,15 +255,8 @@ function actualizarHistorialUI() {
     }
     
     historyList.innerHTML = historialLocal.map(reg => {
-        let clase = '';
-        let icono = '';
-        if (reg.tipo === 'entry') {
-            clase = 'history-in';
-            icono = '✅';
-        } else {
-            clase = 'history-denied';
-            icono = '⛔';
-        }
+        const clase = reg.tipo === 'entry' ? 'history-in' : 'history-denied';
+        const icono = reg.tipo === 'entry' ? '✅' : '⛔';
         return `
             <div class="history-item ${clase}">
                 <strong>${icono} ${reg.hora}</strong> - ${reg.nombre}<br>
@@ -135,45 +266,17 @@ function actualizarHistorialUI() {
     }).join('');
 }
 
-async function enviarRegistroANube(registro) {
-    try {
-        const payload = {
-            action: 'registrarAcceso',
-            nombre: registro.nombre,
-            tipo: registro.tipo,
-            mensaje: registro.mensaje,
-            hora: registro.hora,
-            fecha: registro.fecha,
-            timestamp: registro.timestamp.toISOString()
-        };
-        
-        await fetch(SCRIPT_URL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify(payload) 
-        });
-    } catch(e) {
-        console.log("Error guardando historial:", e);
-    }
-}
-
-// ========== CONTROL DE ACCESO - SOLO ENTRADA ==========
-
-// ✅ FUNCIÓN PARA ACCESO PERMITIDO (SOLO REGISTRADOS - SOLO ENTRADA)
 async function procesarAccesoPermitido(nombre) {
-    // Verificar pausa de 4 segundos para esta persona específica
     const ahora = Date.now();
     const ultimoAcceso = ultimoRegistro.get(nombre);
     
     if (ultimoAcceso && (ahora - ultimoAcceso) < 4000) {
-        console.log(`Pausa de 4 segundos para ${nombre}. Próximo acceso en ${4000 - (ahora - ultimoAcceso)}ms`);
-        return; // No registrar si pasaron menos de 4 segundos
+        console.log(`Pausa de 4 segundos para ${nombre}`);
+        return;
     }
     
-    // Marcar como registrado
     ultimoRegistro.set(nombre, ahora);
     
-    // Mostrar panel VERDE solo para AUTORIZADOS
     welcomeMessage.innerHTML = `${nombre}`;
     actionText.innerHTML = '✅ ENTRADA REGISTRADA ✅';
     actionText.style.color = '#2ecc71';
@@ -182,11 +285,9 @@ async function procesarAccesoPermitido(nombre) {
     deniedPanel.style.display = 'none';
     timestampText.innerHTML = `🕐 ${new Date().toLocaleTimeString()}`;
     
-    // Agregar al historial
     agregarAlHistorial(nombre, 'entry', 'Entrada registrada correctamente');
-    reproducirExito(); // 🔊 Sonido de éxito
+    reproducirExito();
     
-    // Ocultar panel después de 3 segundos
     setTimeout(() => {
         if (welcomePanel.style.display === 'block') {
             welcomePanel.style.display = 'none';
@@ -195,26 +296,22 @@ async function procesarAccesoPermitido(nombre) {
     }, 3000);
 }
 
-// ❌ FUNCIÓN PARA ACCESO DENEGADO (NO REGISTRADOS)
 function procesarAccesoDenegado() {
-    // Verificar pausa global para denegados (evitar spam)
     const ahora = Date.now();
     const ultimoDenegado = ultimoRegistro.get('_denied_');
     
     if (ultimoDenegado && (ahora - ultimoDenegado) < 4000) {
-        return; // No mostrar denegado si pasaron menos de 4 segundos
+        return;
     }
     ultimoRegistro.set('_denied_', ahora);
     
-    // Mostrar panel ROJO para NO AUTORIZADOS
     deniedPanel.style.display = 'block';
     welcomePanel.style.display = 'none';
     statusDiv.style.display = 'none';
     
-    agregarAlHistorial('❌ PERSONA NO REGISTRADA', 'denied', 'ACCESO DENEGADO - Rostro no registrado en la base de datos');
-    reproducirFallo(); // 🔊 Sonido de fallo
+    agregarAlHistorial('❌ PERSONA NO REGISTRADA', 'denied', 'ACCESO DENEGADO - Rostro no registrado');
+    reproducirFallo();
     
-    // Ocultar panel después de 3 segundos
     setTimeout(() => {
         if (deniedPanel.style.display === 'block') {
             deniedPanel.style.display = 'none';
@@ -223,33 +320,29 @@ function procesarAccesoDenegado() {
     }, 3000);
 }
 
-// ========== INICIALIZACIÓN DEL SISTEMA ==========
+// ========== INICIALIZACIÓN ==========
 async function iniciarSistema() {
     try {
-        statusDiv.innerText = "🔄 Cargando cerebro facial...";
+        statusDiv.innerText = "🔄 Cargando modelos faciales...";
         
         const path = '.';
         await faceapi.nets.tinyFaceDetector.loadFromUri(path);
         await faceapi.nets.faceLandmark68Net.loadFromUri(path);
         await faceapi.nets.faceRecognitionNet.loadFromUri(path);
         
-        statusDiv.innerText = "📡 Sincronizando con base de datos...";
         await cargarUsuariosDesdeExcel();
         cargandoUsuarios = false;
-        
-        await cargarHistorialDesdeNube();
         
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
         
         video.onplay = () => {
-            statusDiv.innerText = "✅ SISTEMA ACTIVO - Esperando rostro";
+            statusDiv.innerText = "✅ SISTEMA ACTIVO";
             statusDiv.style.color = "#3498db";
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
             
             setInterval(async () => {
-                // Evitar procesamiento múltiple simultáneo
                 if (procesando) return;
                 procesando = true;
                 
@@ -270,18 +363,15 @@ async function iniciarSistema() {
                         const bestMatch = buscarCoincidencia(detection.descriptor);
                         
                         if (bestMatch.label !== "Desconocido") {
-                            // ✅ PERSONA REGISTRADA - Acceso permitido (solo entrada)
                             accesoPermitido = true;
                             await procesarAccesoPermitido(bestMatch.label);
                             
-                            // Dibujar cuadro VERDE
                             ctx.strokeStyle = "#2ecc71";
                             ctx.lineWidth = 5;
                             ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
                                          detection.detection.box.width, detection.detection.box.height);
-                            break; // Solo procesar el primer rostro reconocido
+                            break;
                         } else {
-                            // ❌ PERSONA NO REGISTRADA - Dibujar cuadro ROJO
                             ctx.strokeStyle = "#e74c3c";
                             ctx.lineWidth = 4;
                             ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
@@ -289,54 +379,20 @@ async function iniciarSistema() {
                         }
                     }
                     
-                    // Si hay rostros pero NINGUNO fue registrado → ACCESO DENEGADO
                     if (hayRostros && !accesoPermitido) {
                         procesarAccesoDenegado();
                     }
                     
                 } catch (error) {
-                    console.error("Error en detección:", error);
+                    console.error("Error:", error);
                 } finally {
                     procesando = false;
                 }
-                
-            }, 500); // Revisar cada 500ms para mejor rendimiento
+            }, 500);
         };
     } catch (err) {
         statusDiv.innerText = "❌ Error: " + err.message;
         statusDiv.style.color = "red";
-    }
-}
-
-async function cargarUsuariosDesdeExcel() {
-    try {
-        const response = await fetch(SCRIPT_URL);
-        const data = await response.json();
-        usuariosRegistrados = data.map(user => ({
-            name: user.name,
-            role: user.role || "Usuario",
-            descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
-        }));
-        console.log("✅ Usuarios registrados cargados:", usuariosRegistrados.length);
-        if (usuariosRegistrados.length === 0) {
-            console.warn("⚠️ No hay usuarios registrados en la base de datos");
-        }
-    } catch (e) {
-        console.error("Error cargando usuarios:", e);
-        usuariosRegistrados = [];
-    }
-}
-
-async function cargarHistorialDesdeNube() {
-    try {
-        const response = await fetch(`${SCRIPT_URL}?action=getHistorial`);
-        const data = await response.json();
-        if (data.historial) {
-            historialLocal = data.historial;
-            actualizarHistorialUI();
-        }
-    } catch(e) {
-        console.log("No se pudo cargar historial previo");
     }
 }
 
@@ -354,46 +410,9 @@ function buscarCoincidencia(descriptorActual) {
     return { label: bestMatch.label };
 }
 
-// ========== REGISTRO DE NUEVOS USUARIOS ==========
-async function enviarANube() {
-    // Inicializar sonidos al primer clic
-    inicializarSonidos();
-    
-    const name = document.getElementById('personName').value;
-    const role = document.getElementById('personRole').value;
-    if (!name || !role) return alert("❌ Completa todos los datos");
-    
-    statusDiv.innerText = "📸 Capturando rostro...";
-    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks()
-        .withFaceDescriptor();
-    
-    if (detection) {
-        const payload = {
-            action: 'registrarUsuario',
-            id: Date.now().toString(),
-            name: name,
-            role: role,
-            faceDescriptor: JSON.stringify(Array.from(detection.descriptor))
-        };
-        
-        fetch(SCRIPT_URL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify(payload) 
-        }).then(() => {
-            alert(`✅ ¡Usuario ${name} registrado exitosamente!`);
-            location.reload();
-        });
-    } else {
-        alert("❌ No se detectó ningún rostro. Asegúrate de estar frente a la cámara.");
-    }
-}
-
-// Inicializar sonidos cuando el usuario haga clic
+// Eventos
 document.body.addEventListener('click', function activarSonidos() {
     inicializarSonidos();
 }, { once: true });
 
-// Iniciar el sistema
 iniciarSistema();
