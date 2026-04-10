@@ -26,13 +26,15 @@ async function iniciarSistema() {
         await cargarUsuariosDesdeExcel();
         cargandoUsuarios = false;
         
-        console.log("✅ Sistema listo. Usuarios autorizados:", usuariosRegistrados.map(u => u.name));
+        console.log("✅ Sistema listo");
+        console.log("📋 Usuarios REGISTRADOS en base de datos:", usuariosRegistrados.length);
+        usuariosRegistrados.forEach(u => console.log("   →", u.name));
 
         const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
         video.srcObject = stream;
         
         video.onplay = () => {
-            statusDiv.innerText = "Sistema Activo - Mostrando rostro a la cámara";
+            statusDiv.innerText = "Sistema Activo";
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
@@ -45,61 +47,64 @@ async function iniciarSistema() {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                // Variables de estado
-                let hayRostroAutorizado = false;
-                let nombreAutorizado = "";
-                let hayRostroNoAutorizado = false;
-
-                for (const detection of resized) {
-                    // Buscar coincidencia con usuarios registrados
-                    const bestMatch = buscarCoincidencia(detection.descriptor);
+                // === NUEVA LÓGICA MÁS SIMPLE Y CLARA ===
+                let personaAutorizada = false;
+                let nombrePersona = "";
+                
+                // Si hay rostros detectados
+                if (resized.length > 0) {
+                    // Tomar el primer rostro (el más grande/cercano normalmente)
+                    const rostro = resized[0];
+                    const descriptor = rostro.descriptor;
                     
-                    // === LÓGICA CORREGIDA ===
-                    // Verificar si el label NO es "Desconocido" (significa que está registrado)
-                    if (bestMatch.label !== "Desconocido") {
-                        // ¡ESTO ES UN USUARIO AUTORIZADO!
-                        hayRostroAutorizado = true;
-                        nombreAutorizado = bestMatch.label;
+                    // Buscar si este rostro está en la base de datos
+                    const resultado = buscarCoincidencia(descriptor);
+                    
+                    // === DECISIÓN CLARA ===
+                    if (resultado.label !== "Desconocido" && resultado.label !== "unknown") {
+                        // ¡ESTO ES UN ROSTRO REGISTRADO!
+                        personaAutorizada = true;
+                        nombrePersona = resultado.label;
                         
                         // Dibujar cuadro VERDE
                         ctx.strokeStyle = "#2ecc71";
                         ctx.lineWidth = 5;
-                        ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
-                                     detection.detection.box.width, detection.detection.box.height);
+                        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                                     rostro.detection.box.width, rostro.detection.box.height);
                         ctx.font = "bold 18px Arial";
                         ctx.fillStyle = "#2ecc71";
-                        ctx.fillText("✓ AUTORIZADO", detection.detection.box.x, detection.detection.box.y - 5);
+                        ctx.fillText("✓ AUTORIZADO", rostro.detection.box.x, rostro.detection.box.y - 5);
                         
-                        console.log("✅ AUTORIZADO:", bestMatch.label);
+                        console.log("✅ AUTORIZADO:", resultado.label);
                     } 
                     else {
-                        // ¡ESTO ES UN ROSTRO NO REGISTRADO (UNKNOWN)!
-                        hayRostroNoAutorizado = true;
+                        // ¡ESTO ES UN ROSTRO DESCONOCIDO!
+                        personaAutorizada = false;
                         
                         // Dibujar cuadro ROJO
                         ctx.strokeStyle = "#e74c3c";
                         ctx.lineWidth = 5;
-                        ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
-                                     detection.detection.box.width, detection.detection.box.height);
+                        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                                     rostro.detection.box.width, rostro.detection.box.height);
                         ctx.font = "bold 18px Arial";
                         ctx.fillStyle = "#e74c3c";
-                        ctx.fillText("✗ ACCESO DENEGADO", detection.detection.box.x, detection.detection.box.y - 5);
+                        ctx.fillText("✗ ACCESO DENEGADO", rostro.detection.box.x, rostro.detection.box.y - 5);
                         
                         console.log("🔴 ACCESO DENEGADO - Rostro NO registrado");
                     }
                 }
-
-                // === MOSTRAR PANEL CORRECTO ===
-                if (hayRostroAutorizado) {
-                    // Solo mostrar bienvenida si hay un rostro autorizado
-                    mostrarPanelBienvenida(nombreAutorizado);
+                
+                // === MOSTRAR EL PANEL CORRECTO ===
+                if (personaAutorizada) {
+                    // SOLO mostrar bienvenida si es autorizado
+                    mostrarPanelBienvenida(nombrePersona);
                 } 
-                else if (hayRostroNoAutorizado) {
-                    // Mostrar acceso denegado SOLO para rostros no registrados
+                else if (resized.length > 0) {
+                    // Hay rostro pero NO es autorizado
                     mostrarPanelDenegado();
-                } 
+                }
                 else {
-                    // No hay rostros - ocultar todo
+                    // No hay rostros
                     ocultarPaneles();
                 }
 
@@ -113,23 +118,23 @@ async function iniciarSistema() {
 }
 
 function mostrarPanelBienvenida(nombre) {
-    if (timeoutOcultarPanel) clearTimeout(timeoutOcultarPanel);
-    
-    // Asegurar que NO se muestre "Unknown"
-    if (!nombre || nombre === "Desconocido") {
-        console.error("ERROR: Intentando mostrar bienvenida con nombre:", nombre);
-        return;
+    // VALIDACIÓN ESTRICTA - NUNCA mostrar "Unknown"
+    if (!nombre || nombre === "Desconocido" || nombre === "unknown" || nombre.toLowerCase().includes("unknown")) {
+        console.error("🚨 INTENTO DE MOSTRAR BIENVENIDA CON NOMBRE INVÁLIDO:", nombre);
+        return; // SALIR - No mostrar nada
     }
     
-    // Ocultar panel de denegado
+    if (timeoutOcultarPanel) clearTimeout(timeoutOcultarPanel);
+    
+    // Ocultar panel rojo
     deniedPanel.style.display = 'none';
     
-    // Mostrar panel de bienvenida con el nombre correcto
+    // Mostrar panel verde con el nombre
     welcomeMessage.innerText = "Bienvenido, " + nombre;
     welcomePanel.style.display = 'block';
     statusDiv.style.display = 'none';
     
-    console.log("🎉 MOSTRANDO BIENVENIDA PARA:", nombre);
+    console.log("🎉 MOSTRANDO PANEL VERDE para:", nombre);
     
     timeoutOcultarPanel = setTimeout(() => {
         welcomePanel.style.display = 'none';
@@ -140,20 +145,19 @@ function mostrarPanelBienvenida(nombre) {
 function mostrarPanelDenegado() {
     if (timeoutOcultarPanel) clearTimeout(timeoutOcultarPanel);
     
-    // Asegurar que el panel de bienvenida esté oculto
+    // IMPORTANTE: Asegurar que el panel verde NO esté visible
     welcomePanel.style.display = 'none';
     
-    // Mostrar panel de acceso denegado
+    // Mostrar panel rojo
     deniedPanel.style.display = 'block';
     statusDiv.style.display = 'none';
     
-    // Animación de shake
     deniedPanel.classList.add('shake-animation');
     setTimeout(() => {
         deniedPanel.classList.remove('shake-animation');
     }, 500);
     
-    console.log("🔴 MOSTRANDO ACCESO DENEGADO");
+    console.log("🔴 MOSTRANDO PANEL ROJO - ACCESO DENEGADO");
     
     timeoutOcultarPanel = setTimeout(() => {
         deniedPanel.style.display = 'none';
@@ -171,39 +175,51 @@ async function cargarUsuariosDesdeExcel() {
     try {
         const response = await fetch(SCRIPT_URL);
         const data = await response.json();
+        
+        console.log("📥 Datos recibidos de Google Sheets:", data);
+        
         usuariosRegistrados = data.map(user => ({
             name: user.name,
             descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
         }));
-        console.log("📋 Usuarios registrados:", usuariosRegistrados.length);
-        usuariosRegistrados.forEach(u => console.log("  -", u.name));
+        
+        console.log("✅ Usuarios cargados correctamente:", usuariosRegistrados.length);
+        if (usuariosRegistrados.length === 0) {
+            console.warn("⚠️ No hay usuarios registrados en la base de datos");
+        } else {
+            usuariosRegistrados.forEach(u => console.log("   👤", u.name));
+        }
     } catch (e) {
-        console.error("Error cargando usuarios:", e);
+        console.error("❌ Error cargando usuarios:", e);
         usuariosRegistrados = [];
     }
 }
 
 function buscarCoincidencia(descriptorActual) {
-    // Si no hay usuarios registrados, todos son desconocidos
-    if (usuariosRegistrados.length === 0 || cargandoUsuarios) {
-        return { label: "Desconocido", distance: 1 };
+    // Si no hay usuarios, todos son desconocidos
+    if (usuariosRegistrados.length === 0) {
+        console.log("⚠️ No hay usuarios registrados para comparar");
+        return { label: "Desconocido" };
     }
 
-    const faceMatcher = new faceapi.FaceMatcher(
-        usuariosRegistrados.map(u => new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])),
-        0.55
+    // Crear FaceMatcher con los usuarios registrados
+    const labeledDescriptors = usuariosRegistrados.map(u => 
+        new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])
     );
-
+    
+    const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
     const bestMatch = faceMatcher.findBestMatch(descriptorActual);
     
-    // Debug: Mostrar qué encontró
-    if (bestMatch.label !== "Desconocido") {
-        console.log(`👤 Coincidencia: ${bestMatch.label} (distancia: ${bestMatch.distance})`);
+    // Log detallado de la comparación
+    console.log(`🔍 Comparación: Mejor coincidencia = "${bestMatch.label}", Distancia = ${bestMatch.distance}`);
+    
+    if (bestMatch.label !== "unknown" && bestMatch.label !== "Desconocido") {
+        console.log(`✅ Coincidencia encontrada con: ${bestMatch.label}`);
     } else {
-        console.log(`❌ Sin coincidencia - distancia: ${bestMatch.distance}`);
+        console.log(`❌ No se encontró coincidencia - Rostro desconocido`);
     }
     
-    return { label: bestMatch.label, distance: bestMatch.distance };
+    return { label: bestMatch.label };
 }
 
 async function enviarANube() {
@@ -211,7 +227,7 @@ async function enviarANube() {
     const role = document.getElementById('personRole').value;
     
     if (!name || !role) {
-        alert("❌ Completa nombre y cargo");
+        alert("❌ Completa todos los datos");
         return;
     }
 
@@ -235,7 +251,7 @@ async function enviarANube() {
             body: JSON.stringify(payload) 
         })
         .then(() => {
-            alert(`✅ Registro exitoso para: ${name}\nLa página se recargará.`);
+            alert(`✅ Registro exitoso: ${name}\n🔄 Recargando página...`);
             location.reload(); 
         });
     } else {
@@ -243,4 +259,5 @@ async function enviarANube() {
     }
 }
 
+// Iniciar el sistema
 iniciarSistema();
