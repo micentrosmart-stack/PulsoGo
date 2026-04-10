@@ -14,20 +14,21 @@ const deniedPanel = document.getElementById('denied-panel');
 
 let usuariosRegistrados = [];
 let cargandoUsuarios = true;
-let ultimoEstado = null; // Para evitar parpadeos
-let timeoutOcultarPanel = null; // Timeout para ocultar paneles
+let ultimoEstado = null;
+let timeoutOcultarPanel = null;
+let ultimoRostroDesconocido = false; // Para rastrear rostros desconocidos
 
 async function iniciarSistema() {
     try {
         statusDiv.innerText = "Cargando cerebro facial...";
         
         // Cargar modelos
-        const path = '.'; // Tus modelos están en la raíz
+        const path = '.';
         await faceapi.nets.tinyFaceDetector.loadFromUri(path);
         await faceapi.nets.faceLandmark68Net.loadFromUri(path);
         await faceapi.nets.faceRecognitionNet.loadFromUri(path);
         
-        // Cargar base de datos del Excel
+        // Cargar base de datos
         statusDiv.innerText = "Sincronizando con base de datos...";
         await cargarUsuariosDesdeExcel();
         cargandoUsuarios = false;
@@ -52,64 +53,90 @@ async function iniciarSistema() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 let personaAutorizada = false;
+                let personaDesconocida = false;
                 let nombreAutorizado = "";
 
                 // Procesar cada rostro detectado
                 for (const detection of resized) {
                     const bestMatch = buscarCoincidencia(detection.descriptor);
                     
-                    // Si el rostro está registrado (autorizado)
+                    // Verificar si el rostro está registrado o no
                     if (bestMatch.label !== "Desconocido") {
+                        // USUARIO REGISTRADO - AUTORIZADO
                         personaAutorizada = true;
                         nombreAutorizado = bestMatch.label;
                         
-                        // Dibujar cuadro VERDE
+                        // Dibujar cuadro VERDE para autorizado
                         ctx.strokeStyle = "#2ecc71";
                         ctx.lineWidth = 5;
                         ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
                                      detection.detection.box.width, detection.detection.box.height);
                         
-                        // Dibujar texto "AUTORIZADO" en verde
-                        ctx.font = "16px Arial";
+                        // Texto de autorizado
+                        ctx.font = "bold 18px Arial";
                         ctx.fillStyle = "#2ecc71";
                         ctx.fillText("✓ AUTORIZADO", detection.detection.box.x, detection.detection.box.y - 5);
-                    } else {
-                        // Si el rostro NO está registrado (desconocido)
-                        // Dibujar cuadro ROJO
+                    } 
+                    else {
+                        // USUARIO NO REGISTRADO (UNKNOWN) - ACCESO DENEGADO
+                        personaDesconocida = true;
+                        
+                        // Dibujar cuadro ROJO para acceso denegado
                         ctx.strokeStyle = "#e74c3c";
-                        ctx.lineWidth = 5;
+                        ctx.lineWidth = 6; // Borde más grueso para denegado
                         ctx.strokeRect(detection.detection.box.x, detection.detection.box.y, 
                                      detection.detection.box.width, detection.detection.box.height);
                         
-                        // Dibujar texto "NO AUTORIZADO" en rojo
-                        ctx.font = "16px Arial";
+                        // Texto de ACCESO DENEGADO en rojo
+                        ctx.font = "bold 18px Arial";
                         ctx.fillStyle = "#e74c3c";
-                        ctx.fillText("✗ NO AUTORIZADO", detection.detection.box.x, detection.detection.box.y - 5);
+                        ctx.fillText("✗ ACCESO DENEGADO", detection.detection.box.x, detection.detection.box.y - 5);
+                        
+                        // Opcional: Dibujar una X roja sobre el rostro (efecto visual más fuerte)
+                        ctx.beginPath();
+                        ctx.strokeStyle = "#e74c3c";
+                        ctx.lineWidth = 4;
+                        const centerX = detection.detection.box.x + detection.detection.box.width / 2;
+                        const centerY = detection.detection.box.y + detection.detection.box.height / 2;
+                        const size = detection.detection.box.width / 3;
+                        ctx.moveTo(centerX - size, centerY - size);
+                        ctx.lineTo(centerX + size, centerY + size);
+                        ctx.moveTo(centerX + size, centerY - size);
+                        ctx.lineTo(centerX - size, centerY + size);
+                        ctx.stroke();
                     }
                 }
 
-                // Manejar la UI según el estado
+                // Manejar la UI según los resultados de detección
                 if (personaAutorizada) {
-                    // Mostrar panel de bienvenida (verde)
+                    // Mostrar panel de BIENVENIDA (verde)
                     if (ultimoEstado !== "autorizado") {
                         mostrarPanelBienvenida(nombreAutorizado);
                         ultimoEstado = "autorizado";
+                        ultimoRostroDesconocido = false;
                     }
-                } else if (resized.length > 0) {
-                    // Hay rostros pero todos son desconocidos
+                } 
+                else if (personaDesconocida) {
+                    // MOSTRAR ACCESO DENEGADO EN ROJO - PARA UNKNOWN
                     if (ultimoEstado !== "denegado") {
                         mostrarPanelDenegado();
                         ultimoEstado = "denegado";
+                        ultimoRostroDesconocido = true;
+                        
+                        // Opcional: Registrar intento de acceso denegado en consola
+                        console.log("🔴 ACCESO DENEGADO - Rostro no registrado detectado a las " + new Date().toLocaleTimeString());
                     }
-                } else {
+                } 
+                else {
                     // No hay rostros detectados
                     if (ultimoEstado !== "ninguno") {
                         ocultarPaneles();
                         ultimoEstado = "ninguno";
+                        ultimoRostroDesconocido = false;
                     }
                 }
 
-            }, 150); // Reducido a 150ms para mejor respuesta
+            }, 150);
         };
     } catch (err) {
         statusDiv.innerText = "Error: " + err.message;
@@ -117,36 +144,29 @@ async function iniciarSistema() {
     }
 }
 
-// Función para mostrar el panel de bienvenida (autorizado)
+// Función para mostrar el panel de bienvenida (VERDE - Autorizado)
 function mostrarPanelBienvenida(nombre) {
-    // Limpiar timeout anterior si existe
     if (timeoutOcultarPanel) {
         clearTimeout(timeoutOcultarPanel);
     }
     
-    // Ocultar panel de denegado
     deniedPanel.style.display = 'none';
     
-    // Mostrar panel de bienvenida
     welcomeMessage.innerText = "Bienvenido, " + nombre;
     welcomePanel.style.display = 'block';
     statusDiv.style.display = 'none';
     
-    // Opcional: Efecto de sonido (descomentar si tienes audio)
-    // reproducirSonido('autorizado.mp3');
-    
-    // Auto-ocultar después de 5 segundos
+    // Auto-ocultar después de 4 segundos
     timeoutOcultarPanel = setTimeout(() => {
         if (ultimoEstado === "autorizado") {
             ocultarPaneles();
             ultimoEstado = "ninguno";
         }
-    }, 5000);
+    }, 4000);
 }
 
-// Función para mostrar el panel de acceso denegado
+// Función para mostrar panel de ACCESO DENEGADO (ROJO - Para UNKNOWN)
 function mostrarPanelDenegado() {
-    // Limpiar timeout anterior si existe
     if (timeoutOcultarPanel) {
         clearTimeout(timeoutOcultarPanel);
     }
@@ -154,20 +174,24 @@ function mostrarPanelDenegado() {
     // Ocultar panel de bienvenida
     welcomePanel.style.display = 'none';
     
-    // Mostrar panel de denegado
+    // Mostrar panel ROJO de acceso denegado
     deniedPanel.style.display = 'block';
     statusDiv.style.display = 'none';
     
-    // Añadir animación de shake
+    // Añadir animación de shake para más énfasis
     deniedPanel.classList.add('shake-animation');
     setTimeout(() => {
         deniedPanel.classList.remove('shake-animation');
+    }, 500);
+    
+    // Efecto de flash rojo en el fondo (opcional)
+    document.body.style.transition = 'background-color 0.1s';
+    document.body.style.backgroundColor = 'rgba(231, 76, 60, 0.1)';
+    setTimeout(() => {
+        document.body.style.backgroundColor = '';
     }, 300);
     
-    // Opcional: Efecto de sonido (descomentar si tienes audio)
-    // reproducirSonido('denegado.mp3');
-    
-    // Auto-ocultar después de 3 segundos
+    // El panel de ACCESO DENEGADO permanece visible por 3 segundos
     timeoutOcultarPanel = setTimeout(() => {
         if (ultimoEstado === "denegado") {
             ocultarPaneles();
@@ -192,8 +216,8 @@ async function cargarUsuariosDesdeExcel() {
             name: user.name,
             descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
         }));
-        console.log("Usuarios cargados:", usuariosRegistrados.length);
-        console.log("Usuarios:", usuariosRegistrados.map(u => u.name));
+        console.log("✅ Usuarios registrados:", usuariosRegistrados.length);
+        console.log("📋 Lista de usuarios autorizados:", usuariosRegistrados.map(u => u.name));
     } catch (e) {
         console.error("Error cargando usuarios:", e);
         usuariosRegistrados = [];
@@ -208,10 +232,18 @@ function buscarCoincidencia(descriptorActual) {
 
     const faceMatcher = new faceapi.FaceMatcher(
         usuariosRegistrados.map(u => new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])),
-        0.55 // Nivel de precisión (menor es más estricto)
+        0.55 // Umbral de similitud
     );
 
     const bestMatch = faceMatcher.findBestMatch(descriptorActual);
+    
+    // Debug: Mostrar qué se está detectando
+    if (bestMatch.label !== "Desconocido") {
+        console.log("✅ Autorizado:", bestMatch.label, "Distancia:", bestMatch.distance);
+    } else {
+        console.log("🔴 ACCESO DENEGADO - Rostro desconocido detectado");
+    }
+    
     return { label: bestMatch.label };
 }
 
@@ -245,7 +277,7 @@ async function enviarANube() {
             body: JSON.stringify(payload) 
         })
         .then(() => {
-            alert(`✅ ¡Registro Exitoso!\n\nNombre: ${name}\nRol: ${role}\n\nLa página se recargará para actualizar la base de datos.`);
+            alert(`✅ ¡Registro Exitoso!\n\n👤 Nombre: ${name}\n💼 Rol: ${role}\n\nLa página se recargará para actualizar la base de datos.`);
             location.reload(); 
         })
         .catch(err => {
@@ -254,17 +286,6 @@ async function enviarANube() {
     } else {
         alert("❌ No se detectó ningún rostro. Asegúrate de estar mirando a la cámara.");
     }
-}
-
-// Función opcional para reproducir sonidos (requiere archivos de audio)
-function reproducirSonido(tipo) {
-    const audio = new Audio();
-    if (tipo === 'autorizado') {
-        audio.src = 'bienvenido.mp3'; // Necesitas agregar este archivo
-    } else if (tipo === 'denegado') {
-        audio.src = 'denegado.mp3'; // Necesitas agregar este archivo
-    }
-    audio.play().catch(e => console.log("Error reproduciendo sonido:", e));
 }
 
 // Iniciar el sistema
