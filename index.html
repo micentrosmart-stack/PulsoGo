@@ -179,11 +179,7 @@
             background-position: right 16px center;
             background-size: 20px;
         }
-        .form-group select option {
-            background: #0f1422;
-            color: white;
-            padding: 10px;
-        }
+        .form-group select option { background: #0f1422; color: white; padding: 10px; }
         .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #3498db;
@@ -206,16 +202,9 @@
             gap: 8px;
             transition: all 0.3s ease;
         }
-        .btn-register:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
-        }
-        .btn-delete {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-        }
-        .btn-delete:hover {
-            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
-        }
+        .btn-register:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3); }
+        .btn-delete { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .btn-delete:hover { box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3); }
         .modal {
             display: none;
             position: fixed;
@@ -227,7 +216,6 @@
             z-index: 1000;
             justify-content: center;
             align-items: center;
-            animation: fadeIn 0.3s ease;
         }
         .modal-content {
             background: #1a1f2e;
@@ -249,19 +237,10 @@
             cursor: pointer;
             font-weight: 600;
             font-family: 'Inter', sans-serif;
-            transition: all 0.3s ease;
         }
-        .btn-cancel {
-            background: #2c3e50;
-            color: white;
-        }
-        .btn-confirm {
-            background: #e74c3c;
-            color: white;
-        }
-        .btn-cancel:hover, .btn-confirm:hover {
-            transform: translateY(-2px);
-        }
+        .btn-cancel { background: #2c3e50; color: white; }
+        .btn-confirm { background: #e74c3c; color: white; }
+        hr { margin: 20px 0; border: 1px solid rgba(255,255,255,0.05); }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -270,14 +249,6 @@
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        hr {
-            margin: 20px 0;
-            border: 1px solid rgba(255,255,255,0.05);
         }
     </style>
 </head>
@@ -334,7 +305,7 @@
             </div>
         </div>
 
-        <!-- Tarjeta de Registro de Usuario -->
+        <!-- REGISTRAR USUARIO -->
         <div class="register-card">
             <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
             <div class="form-group"><input type="text" id="personRut" placeholder="RUT / DNI (Ej: 12.345.678-9)"></div>
@@ -344,7 +315,7 @@
             <button class="btn-register" onclick="enviarANube()"><i class="fas fa-save"></i> Guardar Registro</button>
         </div>
 
-        <!-- Tarjeta de Eliminación de Usuario -->
+        <!-- ELIMINAR USUARIO -->
         <div class="register-card">
             <h3><i class="fas fa-trash-alt"></i> Eliminar Usuario</h3>
             <div class="form-group">
@@ -356,7 +327,7 @@
         </div>
     </div>
 
-    <!-- Modal de Confirmación -->
+    <!-- MODAL CONFIRMACION -->
     <div id="confirmModal" class="modal">
         <div class="modal-content">
             <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px;"></i>
