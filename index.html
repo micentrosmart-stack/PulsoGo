@@ -20,19 +20,36 @@
         /* Mensaje de estado por defecto (azul) */
         #status { margin-top: 15px; font-size: 16px; color: #3498db; font-weight: bold; }
 
-        /* PANEL DE BIENVENIDA (OCULTO POR DEFECTO) */
+        /* PANEL DE BIENVENIDA (VERDE - PARA AUTORIZADOS) */
         #welcome-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(46, 204, 113, 0.2); border: 2px solid #2ecc71; border-radius: 10px; width: 80%; animation: fadeIn 0.5s; }
         
         #welcome-message { font-size: 22px; color: #2ecc71; font-weight: bold; margin: 0; }
         #authorized-text { font-size: 18px; color: #2ecc71; margin: 5px 0 0 0; }
+
+        /* PANEL DE ACCESO DENEGADO (ROJO - PARA DESCONOCIDOS) */
+        #denied-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(231, 76, 60, 0.2); border: 2px solid #e74c3c; border-radius: 10px; width: 80%; animation: fadeIn 0.5s; }
+        
+        #denied-message { font-size: 22px; color: #e74c3c; font-weight: bold; margin: 0; }
+        #denied-text { font-size: 18px; color: #e74c3c; margin: 5px 0 0 0; }
 
         /* Sección de registro (para agregar nuevos usuarios) */
         .register-box { margin-top: 30px; padding: 15px; background: #1a1f2c; border-radius: 10px; width: 90%; }
         input { width: 85%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #3498db; background: #121621; color: white; }
         button { width: 85%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
-        /* Animación para el panel */
+        /* Animación para los paneles */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Animación de parpadeo para acceso denegado */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .shake-animation {
+            animation: shake 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -47,9 +64,16 @@
 
         <div id="status">Cargando sistema...</div>
 
+        <!-- Panel de Bienvenida (Autorizado) -->
         <div id="welcome-panel">
             <p id="welcome-message">Bienvenido,</p>
-            <p id="authorized-text">estas autorizado</p>
+            <p id="authorized-text">✅ Acceso Autorizado</p>
+        </div>
+
+        <!-- Panel de Acceso Denegado (No autorizado) -->
+        <div id="denied-panel">
+            <p id="denied-message">🚫 Usuario Desconocido</p>
+            <p id="denied-text">Acceso Denegado</p>
         </div>
 
         <div class="register-box">
