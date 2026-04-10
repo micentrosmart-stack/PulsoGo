@@ -14,7 +14,6 @@ const userRole = document.getElementById('user-role');
 
 let usuariosRegistrados = [];
 let usuariosFiltrados = [];
-let usuarioAEliminar = null;
 let timeoutOcultarCard = null;
 let ultimaDeteccion = null;
 let tiempoEspera = 4000;
@@ -34,7 +33,7 @@ async function registrarAccesoEnArchivoSeparado(usuario) {
         await fetch(SCRIPT_URL_REGISTRO, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
         console.log("✅ Acceso registrado:", usuario.name);
     } catch (err) {
-        console.error("❌ Error:", err);
+        console.error("❌ Error registro acceso:", err);
     }
 }
 
@@ -215,6 +214,10 @@ async function cargarUsuariosDesdeExcel() {
         console.error("❌ Error:", e);
         usuariosRegistrados = [];
         usuariosFiltrados = [];
+        const container = document.getElementById('userList');
+        if (container) {
+            container.innerHTML = '<div class="empty-message"><i class="fas fa-exclamation-triangle"></i> Error cargando usuarios</div>';
+        }
     }
 }
 
@@ -290,34 +293,32 @@ async function enviarANube() {
     }
 }
 
-// ===== ELIMINAR USUARIOS - CORREGIDO =====
+// ===== ELIMINAR USUARIOS - FUNCIONANDO =====
 function mostrarListaUsuarios() {
     const container = document.getElementById('userList');
     if (!container) return;
     
     if (usuariosFiltrados.length === 0) {
         container.innerHTML = '<div class="empty-message"><i class="fas fa-user-slash"></i> No se encontraron usuarios</div>';
-        document.getElementById('btnEliminar').disabled = true;
-        usuarioAEliminar = null;
         return;
     }
     
     let html = '';
-    usuariosFiltrados.forEach(user => {
-        const isSelected = usuarioAEliminar && usuarioAEliminar.id === user.id;
+    for (let i = 0; i < usuariosFiltrados.length; i++) {
+        const user = usuariosFiltrados[i];
         html += `
-            <div class="user-item ${isSelected ? 'selected' : ''}" data-id="${user.id}">
-                <div style="flex:1; cursor:pointer;" onclick="seleccionarUsuario('${user.id}')">
+            <div class="user-item">
+                <div style="flex:1;">
                     <div class="user-item-name"><i class="fas fa-user"></i> ${user.name}</div>
                     <div class="user-item-rut"><i class="fas fa-id-card"></i> ${user.rut}</div>
                     <div class="user-item-empresa"><i class="fas fa-building"></i> ${user.empresa}</div>
                 </div>
-                <button class="user-item-delete" onclick="event.stopPropagation(); abrirModalEliminar('${user.id}')">
+                <button class="user-item-delete" onclick="eliminarUsuario('${user.id}', '${user.name.replace(/'/g, "\\'")}')">
                     <i class="fas fa-trash"></i> Eliminar
                 </button>
             </div>
         `;
-    });
+    }
     container.innerHTML = html;
 }
 
@@ -332,63 +333,48 @@ function filtrarUsuarios() {
             (u.empresa && u.empresa.toLowerCase().includes(term))
         );
     }
-    // Resetear selección al filtrar
-    usuarioAEliminar = null;
-    document.getElementById('btnEliminar').disabled = true;
     mostrarListaUsuarios();
 }
 
-function seleccionarUsuario(userId) {
-    const user = usuariosRegistrados.find(u => u.id === userId);
-    if (user) {
-        usuarioAEliminar = user;
-        document.getElementById('btnEliminar').disabled = false;
-        mostrarListaUsuarios();
-        console.log("✅ Usuario seleccionado:", user.name);
-    }
-}
-
-function abrirModalEliminar(userId) {
-    const user = usuariosRegistrados.find(u => u.id === userId);
-    if (user) {
-        usuarioAEliminar = user;
-        document.getElementById('confirmMessage').innerHTML = `¿Eliminar a <strong>${user.name}</strong><br>RUT: ${user.rut}<br>Empresa: ${user.empresa}?<br><br><span style="color: #e74c3c;">⚠️ Esta acción no se puede deshacer</span>`;
-        document.getElementById('confirmModal').style.display = 'flex';
-    }
-}
-
-function abrirModalEliminarSeleccionado() {
-    if (usuarioAEliminar) {
-        abrirModalEliminar(usuarioAEliminar.id);
-    } else {
-        alert("❌ Primero selecciona un usuario haciendo clic en su nombre");
-    }
+function eliminarUsuario(id, nombre) {
+    // Mostrar modal de confirmación
+    document.getElementById('confirmMessage').innerHTML = `¿Eliminar a <strong>${nombre}</strong>?<br><br><span style="color: #e74c3c;">⚠️ Esta acción no se puede deshacer</span>`;
+    document.getElementById('confirmModal').style.display = 'flex';
+    
+    // Guardar el ID para usarlo en la confirmación
+    window.usuarioIdAEliminar = id;
 }
 
 function cerrarModal() {
     document.getElementById('confirmModal').style.display = 'none';
+    window.usuarioIdAEliminar = null;
 }
 
-// Confirmar eliminación
 async function confirmarEliminacion() {
-    if (!usuarioAEliminar) return;
+    const id = window.usuarioIdAEliminar;
+    if (!id) return;
     
     updateStatus("Eliminando usuario...", "fa-spinner fa-pulse");
     
     try {
-        await fetch(SCRIPT_URL_USUARIOS, {
+        const payload = { 
+            accion: 'delete', 
+            id: id
+        };
+        
+        console.log("Enviando eliminación:", payload);
+        
+        const response = await fetch(SCRIPT_URL_USUARIOS, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify({ 
-                accion: 'delete', 
-                id: usuarioAEliminar.id, 
-                rut: usuarioAEliminar.rut 
-            })
+            body: JSON.stringify(payload)
         });
         
-        alert(`✅ Usuario ${usuarioAEliminar.name} eliminado correctamente`);
+        console.log("Eliminación enviada");
+        alert(`✅ Usuario eliminado correctamente`);
         cerrarModal();
         location.reload();
+        
     } catch (err) {
         console.error("Error:", err);
         alert("⚠️ Error al eliminar. Recargando página...");
