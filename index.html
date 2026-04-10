@@ -7,49 +7,38 @@
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script defer src="script.js"></script>
     <style>
-        body { margin: 0; background: #121621; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        body { margin: 0; background: #121621; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
         
-        .main-container { width: 90%; max-width: 500px; display: flex; flex-direction: column; align-items: center; }
+        /* Contenedor principal */
+        .main-container { width: 90%; max-width: 450px; display: flex; flex-direction: column; align-items: center; }
 
+        /* Caja del video con el cuadro azul/verde */
         .video-box { position: relative; width: 100%; border-radius: 15px; overflow: hidden; border: 3px solid #3498db; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
         video { width: 100%; display: block; background: #000; }
         canvas { position: absolute; top: 0; left: 0; }
 
+        /* Mensaje de estado por defecto (azul) */
         #status { margin-top: 15px; font-size: 16px; color: #3498db; font-weight: bold; }
 
-        #welcome-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(46, 204, 113, 0.2); border: 2px solid #2ecc71; border-radius: 10px; width: 90%; animation: fadeIn 0.5s; }
+        /* PANEL DE BIENVENIDA (OCULTO POR DEFECTO) */
+        #welcome-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(46, 204, 113, 0.2); border: 2px solid #2ecc71; border-radius: 10px; width: 80%; animation: fadeIn 0.5s; }
+        
         #welcome-message { font-size: 22px; color: #2ecc71; font-weight: bold; margin: 0; }
-        #action-text { font-size: 18px; margin: 5px 0 0 0; }
-        #timestamp-text { font-size: 14px; color: #aaa; margin: 8px 0 0 0; }
+        #authorized-text { font-size: 18px; color: #2ecc71; margin: 5px 0 0 0; }
 
-        #denied-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(231, 76, 60, 0.2); border: 2px solid #e74c3c; border-radius: 10px; width: 90%; animation: fadeIn 0.5s; }
-        #denied-message { font-size: 22px; color: #e74c3c; font-weight: bold; margin: 0; }
-        #denied-reason { font-size: 14px; color: #e74c3c; margin: 5px 0 0 0; }
-
-        .history-box { margin-top: 20px; padding: 15px; background: #1a1f2c; border-radius: 10px; width: 90%; max-height: 200px; overflow-y: auto; }
-        .history-box h3 { margin: 0 0 10px 0; color: #3498db; font-size: 16px; }
-        .history-item { padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 12px; text-align: left; }
-        .history-in { background: rgba(46, 204, 113, 0.2); border-left: 3px solid #2ecc71; padding-left: 8px; }
-        .history-denied { background: rgba(231, 76, 60, 0.2); border-left: 3px solid #e74c3c; padding-left: 8px; }
-
-        .register-box { margin-top: 20px; padding: 15px; background: #1a1f2c; border-radius: 10px; width: 90%; }
+        /* Sección de registro (para agregar nuevos usuarios) */
+        .register-box { margin-top: 30px; padding: 15px; background: #1a1f2c; border-radius: 10px; width: 90%; }
         input { width: 85%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #3498db; background: #121621; color: white; }
         button { width: 85%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #2980b9; }
-        .sound-btn { background: #e67e22; margin-bottom: 15px; width: auto; padding: 8px 20px; }
 
+        /* Animación para el panel */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .history-box::-webkit-scrollbar { width: 6px; }
-        .history-box::-webkit-scrollbar-track { background: #0f1117; border-radius: 3px; }
-        .history-box::-webkit-scrollbar-thumb { background: #3498db; border-radius: 3px; }
     </style>
 </head>
 <body>
 
     <div class="main-container">
-        <h1 style="color: #3498db; margin-bottom: 20px;">Pulso Go! - Control de Acceso</h1>
-
-        <button id="activarSonidoBtn" class="sound-btn">🔊 ACTIVAR SONIDOS</button>
+        <h1 style="color: #3498db; margin-bottom: 20px;">Pulso Go!</h1>
 
         <div class="video-box">
             <video id="video" autoplay muted playsinline></video>
@@ -60,44 +49,16 @@
 
         <div id="welcome-panel">
             <p id="welcome-message">Bienvenido,</p>
-            <p id="action-text">✅ ENTRADA REGISTRADA ✅</p>
-            <p id="timestamp-text"></p>
-        </div>
-
-        <div id="denied-panel">
-            <p id="denied-message">⛔ ACCESO DENEGADO ⛔</p>
-            <p id="denied-reason">Rostro no registrado en el sistema</p>
-        </div>
-
-        <div class="history-box">
-            <h3>📋 REGISTRO DE ENTRADAS</h3>
-            <div id="history-list">
-                <div style="text-align: center; color: #666;">Esperando actividad...</div>
-            </div>
+            <p id="authorized-text">estas autorizado</p>
         </div>
 
         <div class="register-box">
-            <h3 style="margin-top: 0;">📝 REGISTRAR NUEVO USUARIO</h3>
+            <h3 style="margin-top: 0;">Registrar Nuevo Rostro</h3>
             <input type="text" id="personName" placeholder="Nombre Completo">
-            <input type="text" id="personRole" placeholder="Cargo / Departamento">
-            <button onclick="enviarANube()">📸 GUARDAR ROSTRO</button>
-            <p style="font-size: 12px; color: #888; margin-top: 10px;">
-                ⚠️ Una vez registrado, el usuario podrá ingresar al sistema
-            </p>
+            <input type="text" id="personRole" placeholder="Cargo">
+            <button onclick="enviarANube()">GUARDAR EN EXCEL</button>
         </div>
     </div>
 
-    <script>
-        document.getElementById('activarSonidoBtn').addEventListener('click', function() {
-            if (typeof inicializarSonidos === 'function') {
-                inicializarSonidos();
-                this.textContent = '✅ SONIDOS ACTIVADOS';
-                this.style.background = '#2ecc71';
-                setTimeout(() => {
-                    this.style.display = 'none';
-                }, 2000);
-            }
-        });
-    </script>
 </body>
 </html>
