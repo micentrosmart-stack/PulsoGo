@@ -17,6 +17,13 @@ let usuariosRegistrados = [];
 let cargandoUsuarios = true;
 let timeoutOcultarCard = null;
 
+// ===== NUEVAS VARIABLES PARA EL COOLDOWN =====
+let ultimaDeteccion = null;        // Almacena el último resultado
+let tiempoUltimaDeteccion = 0;     // Timestamp de la última detección
+let tiempoEspera = 4000;           // 4 segundos de espera
+let deteccionEnProceso = false;    // Evita detecciones durante el cooldown
+let timeoutReactivacion = null;    // Timeout para reactivar detección
+
 async function iniciarSistema() {
     try {
         updateStatus("Cargando modelos faciales...", "fa-spinner fa-pulse");
@@ -41,7 +48,23 @@ async function iniciarSistema() {
             const displaySize = { width: video.clientWidth, height: video.clientHeight };
             faceapi.matchDimensions(canvas, displaySize);
 
+            // Bucle de detección con COOLDOWN
             setInterval(async () => {
+                // === NUEVA LÓGICA DE COOLDOWN ===
+                const ahora = Date.now();
+                
+                // Verificar si estamos en período de cooldown
+                if (deteccionEnProceso) {
+                    // Solo dibujar el último resultado conocido sin procesar nuevo
+                    if (ultimaDeteccion) {
+                        dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize);
+                    }
+                    return; // Salir sin procesar nueva detección
+                }
+                
+                // Procesar nueva detección
+                deteccionEnProceso = true;
+                
                 const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
                     .withFaceLandmarks()
                     .withFaceDescriptors();
@@ -52,8 +75,10 @@ async function iniciarSistema() {
                 
                 let personaAutorizada = false;
                 let datosPersona = null;
+                let rostroEncontrado = false;
                 
                 if (resized.length > 0) {
+                    rostroEncontrado = true;
                     const rostro = resized[0];
                     const descriptor = rostro.descriptor;
                     const resultado = buscarCoincidencia(descriptor);
@@ -61,40 +86,94 @@ async function iniciarSistema() {
                     if (resultado.label !== "Desconocido" && resultado.label !== "unknown") {
                         personaAutorizada = true;
                         datosPersona = resultado.datos;
-                        
-                        ctx.strokeStyle = "#2ecc71";
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
-                                     rostro.detection.box.width, rostro.detection.box.height);
+                        ultimaDeteccion = { tipo: 'autorizado', datos: datosPersona, rostro: rostro };
                         
                         console.log("✅ AUTORIZADO:", resultado.label);
                     } 
                     else {
-                        ctx.strokeStyle = "#e74c3c";
-                        ctx.lineWidth = 4;
-                        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
-                                     rostro.detection.box.width, rostro.detection.box.height);
-                        
+                        ultimaDeteccion = { tipo: 'denegado', rostro: rostro };
                         console.log("🔴 ACCESO DENEGADO");
                     }
+                    
+                    // Dibujar el cuadro correspondiente
+                    dibujarCuadroDeteccion(ctx, rostro, personaAutorizada);
+                } else {
+                    // No hay rostros, ocultar todo
+                    ultimaDeteccion = null;
+                    ocultarTarjetas();
                 }
                 
+                // Actualizar UI según el resultado
                 if (personaAutorizada && datosPersona) {
                     mostrarTarjetaBienvenida(datosPersona);
                 } 
-                else if (resized.length > 0) {
+                else if (rostroEncontrado && !personaAutorizada) {
                     mostrarTarjetaDenegada();
                 }
-                else {
-                    ocultarTarjetas();
+                
+                // === INICIAR COOLDOWN DE 4 SEGUNDOS ===
+                if (rostroEncontrado) {
+                    tiempoUltimaDeteccion = ahora;
+                    
+                    // Programar reactivación después de 4 segundos
+                    if (timeoutReactivacion) clearTimeout(timeoutReactivacion);
+                    timeoutReactivacion = setTimeout(() => {
+                        deteccionEnProceso = false;
+                        console.log("🔄 Sistema reactivado - Listo para nueva detección");
+                        updateStatus("Sistema activo - Listo para detectar", "fa-eye");
+                        
+                        // Limpiar la última detección después del cooldown
+                        if (ultimaDeteccion) {
+                            const ctx = canvas.getContext('2d');
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        }
+                    }, tiempoEspera);
+                    
+                    updateStatus(`Acceso procesado - Esperando ${tiempoEspera/1000}s`, "fa-clock");
+                } else {
+                    // Si no hay rostro, reactivar inmediatamente
+                    deteccionEnProceso = false;
+                    if (timeoutReactivacion) clearTimeout(timeoutReactivacion);
                 }
-
-            }, 150);
+                
+            }, 100); // Detección rápida pero con cooldown
         };
     } catch (err) {
         updateStatus("Error: " + err.message, "fa-exclamation-triangle");
         console.error("Error:", err);
     }
+}
+
+// Función para dibujar cuadro de detección
+function dibujarCuadroDeteccion(ctx, rostro, esAutorizado) {
+    if (esAutorizado) {
+        ctx.strokeStyle = "#2ecc71";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                     rostro.detection.box.width, rostro.detection.box.height);
+        ctx.font = "bold 16px 'Inter', sans-serif";
+        ctx.fillStyle = "#2ecc71";
+        ctx.fillText("✓ AUTORIZADO", rostro.detection.box.x, rostro.detection.box.y - 8);
+    } else {
+        ctx.strokeStyle = "#e74c3c";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                     rostro.detection.box.width, rostro.detection.box.height);
+        ctx.font = "bold 16px 'Inter', sans-serif";
+        ctx.fillStyle = "#e74c3c";
+        ctx.fillText("✗ ACCESO DENEGADO", rostro.detection.box.x, rostro.detection.box.y - 8);
+    }
+}
+
+// Función para dibujar desde la última detección (durante cooldown)
+function dibujarCuadroDesdeUltimaDeteccion(ultimaDeteccion, displaySize) {
+    if (!ultimaDeteccion || !ultimaDeteccion.rostro) return;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const esAutorizado = ultimaDeteccion.tipo === 'autorizado';
+    dibujarCuadroDeteccion(ctx, ultimaDeteccion.rostro, esAutorizado);
 }
 
 // Función para mostrar la tarjeta moderna de bienvenida
@@ -124,12 +203,12 @@ function mostrarTarjetaBienvenida(usuario) {
     const statusEl = document.getElementById('status');
     if (statusEl) statusEl.style.opacity = '0.5';
     
-    console.log("🎉 TARJETA DE BIENVENIDA - Usuario:", usuario.name, "Empresa:", usuario.empresa);
+    console.log("🎉 TARJETA DE BIENVENIDA - Usuario:", usuario.name);
     
-    // Auto-ocultar después de 5 segundos
+    // Auto-ocultar después de 4 segundos (coincide con cooldown)
     timeoutOcultarCard = setTimeout(() => {
         ocultarTarjetas();
-    }, 5000);
+    }, 3500);
 }
 
 // Función para mostrar tarjeta de acceso denegado
