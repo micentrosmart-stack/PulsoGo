@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pulso Go! - Control de Acceso (Entrada/Salida)</title>
+    <title>Pulso Go! - Control de Acceso (Solo Entrada)</title>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script defer src="script.js"></script>
     <style>
@@ -17,7 +17,7 @@
 
         #status { margin-top: 15px; font-size: 16px; color: #3498db; font-weight: bold; }
 
-        /* Panel de bienvenida mejorado */
+        /* Panel de bienvenida */
         #welcome-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(46, 204, 113, 0.2); border: 2px solid #2ecc71; border-radius: 10px; width: 90%; animation: fadeIn 0.5s; }
         #welcome-message { font-size: 22px; color: #2ecc71; font-weight: bold; margin: 0; }
         #action-text { font-size: 18px; margin: 5px 0 0 0; }
@@ -26,24 +26,26 @@
         /* Panel de acceso denegado */
         #denied-panel { display: none; margin-top: 20px; padding: 20px; background: rgba(231, 76, 60, 0.2); border: 2px solid #e74c3c; border-radius: 10px; width: 90%; animation: fadeIn 0.5s; }
         #denied-message { font-size: 22px; color: #e74c3c; font-weight: bold; margin: 0; }
+        #denied-reason { font-size: 14px; color: #e74c3c; margin: 5px 0 0 0; }
 
-        /* Historial de accesos */
+        /* Historial */
         .history-box { margin-top: 20px; padding: 15px; background: #1a1f2c; border-radius: 10px; width: 90%; max-height: 200px; overflow-y: auto; }
         .history-box h3 { margin: 0 0 10px 0; color: #3498db; font-size: 16px; }
         .history-item { padding: 5px; margin: 3px 0; border-radius: 5px; font-size: 12px; text-align: left; }
         .history-in { background: rgba(46, 204, 113, 0.2); border-left: 3px solid #2ecc71; padding-left: 8px; }
-        .history-out { background: rgba(231, 76, 60, 0.2); border-left: 3px solid #e74c3c; padding-left: 8px; }
-        .history-denied { background: rgba(149, 165, 166, 0.2); border-left: 3px solid #95a5a6; padding-left: 8px; }
+        .history-denied { background: rgba(231, 76, 60, 0.2); border-left: 3px solid #e74c3c; padding-left: 8px; }
 
-        /* Sección de registro */
+        /* Registro */
         .register-box { margin-top: 20px; padding: 15px; background: #1a1f2c; border-radius: 10px; width: 90%; }
-        input, select { width: 85%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #3498db; background: #121621; color: white; }
+        input { width: 85%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #3498db; background: #121621; color: white; }
         button { width: 85%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         button:hover { background: #2980b9; }
 
+        .sound-btn { background: #e67e22; margin-bottom: 15px; width: auto; padding: 8px 20px; }
+        .sound-btn:hover { background: #d35400; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Scroll personalizado */
         .history-box::-webkit-scrollbar { width: 6px; }
         .history-box::-webkit-scrollbar-track { background: #0f1117; border-radius: 3px; }
         .history-box::-webkit-scrollbar-thumb { background: #3498db; border-radius: 3px; }
@@ -54,6 +56,8 @@
     <div class="main-container">
         <h1 style="color: #3498db; margin-bottom: 20px;">Pulso Go! - Control de Acceso</h1>
 
+        <button id="activarSonidoBtn" class="sound-btn">🔊 ACTIVAR SONIDOS</button>
+
         <div class="video-box">
             <video id="video" autoplay muted playsinline></video>
             <canvas id="overlay"></canvas>
@@ -61,10 +65,10 @@
 
         <div id="status">Cargando sistema...</div>
 
-        <!-- Panel de Acceso Permitido -->
+        <!-- Panel de Acceso Permitido (SOLO ENTRADA) -->
         <div id="welcome-panel">
             <p id="welcome-message">Bienvenido,</p>
-            <p id="action-text">Acceso permitido</p>
+            <p id="action-text">✅ ENTRADA REGISTRADA ✅</p>
             <p id="timestamp-text"></p>
         </div>
 
@@ -74,21 +78,37 @@
             <p id="denied-reason">Rostro no registrado en el sistema</p>
         </div>
 
-        <!-- Historial de accesos -->
+        <!-- Historial -->
         <div class="history-box">
-            <h3>📋 HISTORIAL DE ACCESOS (Hoy)</h3>
+            <h3>📋 REGISTRO DE ENTRADAS</h3>
             <div id="history-list">
                 <div style="text-align: center; color: #666;">Esperando actividad...</div>
             </div>
         </div>
 
+        <!-- Registro de nuevos usuarios -->
         <div class="register-box">
-            <h3 style="margin-top: 0;">📝 Registrar Nuevo Usuario</h3>
+            <h3 style="margin-top: 0;">📝 REGISTRAR NUEVO USUARIO</h3>
             <input type="text" id="personName" placeholder="Nombre Completo">
             <input type="text" id="personRole" placeholder="Cargo / Departamento">
             <button onclick="enviarANube()">📸 GUARDAR ROSTRO</button>
+            <p style="font-size: 12px; color: #888; margin-top: 10px;">
+                ⚠️ Una vez registrado, el usuario podrá ingresar al sistema
+            </p>
         </div>
     </div>
 
+    <script>
+        document.getElementById('activarSonidoBtn').addEventListener('click', function() {
+            if (typeof inicializarSonidos === 'function') {
+                inicializarSonidos();
+                this.textContent = '✅ SONIDOS ACTIVADOS';
+                this.style.background = '#2ecc71';
+                setTimeout(() => {
+                    this.style.display = 'none';
+                }, 2000);
+            }
+        });
+    </script>
 </body>
 </html>
