@@ -274,8 +274,14 @@ async function cargarUsuariosDesdeExcel() {
         if (usuariosRegistrados.length > 0) {
             console.log("📋 Lista de usuarios autorizados:");
             usuariosRegistrados.forEach(u => console.log(`   👤 ${u.name} | 🏢 ${u.empresa} | 🆔 ${u.rut}`));
+            // Cargar la lista en el select después de cargar usuarios
+            cargarListaUsuariosEnSelect();
         } else {
             console.warn("⚠️ No hay usuarios registrados en la base de datos");
+            const select = document.getElementById('deleteUserSelect');
+            if (select) {
+                select.innerHTML = '<option value="">No hay usuarios registrados</option>';
+            }
         }
     } catch (e) {
         console.error("❌ Error cargando usuarios:", e);
@@ -361,6 +367,115 @@ async function enviarANube() {
     } else {
         alert("❌ No se detectó ningún rostro. Asegúrate de estar mirando directamente a la cámara.");
         updateStatus("No se detectó rostro", "fa-face-frown");
+    }
+}
+
+// ===== FUNCIONES PARA ELIMINAR USUARIOS =====
+
+// Cargar lista de usuarios en el select
+async function cargarListaUsuariosEnSelect() {
+    try {
+        const select = document.getElementById('deleteUserSelect');
+        if (!select) return;
+        
+        if (usuariosRegistrados.length === 0) {
+            select.innerHTML = '<option value="">No hay usuarios registrados</option>';
+            return;
+        }
+        
+        select.innerHTML = '<option value="">Selecciona un usuario...</option>';
+        
+        usuariosRegistrados.forEach(usuario => {
+            const option = document.createElement('option');
+            option.value = JSON.stringify({
+                id: usuario.id,
+                rut: usuario.rut,
+                name: usuario.name,
+                empresa: usuario.empresa
+            });
+            option.textContent = `${usuario.name} | ${usuario.rut} | ${usuario.empresa}`;
+            select.appendChild(option);
+        });
+        
+        console.log("✅ Lista de usuarios cargada en el select");
+    } catch (error) {
+        console.error("Error cargando lista de usuarios:", error);
+    }
+}
+
+// Mostrar modal de confirmación
+let usuarioAEliminar = null;
+
+function eliminarUsuario() {
+    const select = document.getElementById('deleteUserSelect');
+    const selectedValue = select.value;
+    
+    if (!selectedValue) {
+        alert("❌ Por favor, selecciona un usuario para eliminar");
+        return;
+    }
+    
+    if (selectedValue === "No hay usuarios registrados" || selectedValue === "Cargando lista de usuarios...") {
+        alert("❌ No hay usuarios disponibles para eliminar");
+        return;
+    }
+    
+    usuarioAEliminar = JSON.parse(selectedValue);
+    
+    // Mostrar modal de confirmación
+    const modal = document.getElementById('confirmModal');
+    const confirmMessage = document.getElementById('confirmMessage');
+    confirmMessage.innerHTML = `¿Estás seguro de eliminar a <strong>${usuarioAEliminar.name}</strong><br>con RUT <strong>${usuarioAEliminar.rut}</strong>?<br><br><span style="color: #e74c3c;">⚠️ Esta acción no se puede deshacer</span>`;
+    
+    modal.style.display = 'flex';
+}
+
+function cerrarModal() {
+    document.getElementById('confirmModal').style.display = 'none';
+    usuarioAEliminar = null;
+}
+
+// Función para eliminar definitivamente
+async function confirmarEliminacion() {
+    if (!usuarioAEliminar) return;
+    
+    updateStatus("Eliminando usuario...", "fa-spinner fa-pulse");
+    
+    try {
+        const payload = {
+            accion: 'delete',
+            id: usuarioAEliminar.id,
+            rut: usuarioAEliminar.rut
+        };
+        
+        console.log("📤 Eliminando usuario:", payload);
+        
+        const response = await fetch(SCRIPT_URL_USUARIOS, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${result.message}\n\nUsuario: ${usuarioAEliminar.name}\nRUT: ${usuarioAEliminar.rut}`);
+            // Recargar la página para actualizar todo
+            location.reload();
+        } else {
+            alert(`❌ Error: ${result.message}`);
+            updateStatus("Error al eliminar", "fa-exclamation-triangle");
+        }
+        
+    } catch (error) {
+        console.error("Error eliminando usuario:", error);
+        alert("❌ Error al conectar con el servidor: " + error.message);
+        updateStatus("Error de conexión", "fa-exclamation-triangle");
+    } finally {
+        cerrarModal();
     }
 }
 
