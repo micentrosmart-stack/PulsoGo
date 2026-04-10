@@ -161,7 +161,7 @@
             color: #b0b0b0;
         }
         .form-group { margin-bottom: 12px; }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 14px 16px;
             background: rgba(15, 20, 34, 0.9);
@@ -171,7 +171,20 @@
             font-family: 'Inter', sans-serif;
             font-size: 14px;
         }
-        .form-group input:focus {
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 20px;
+        }
+        .form-group select option {
+            background: #0f1422;
+            color: white;
+            padding: 10px;
+        }
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #3498db;
             background: rgba(15, 20, 34, 1);
@@ -191,10 +204,63 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            transition: all 0.3s ease;
         }
         .btn-register:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+        .btn-delete {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+        .btn-delete:hover {
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.3);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            background: #1a1f2e;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 400px;
+            margin: 20px;
+            text-align: center;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+        .modal-content h3 { margin-bottom: 16px; color: #fff; }
+        .modal-content p { color: #8b8faa; margin-bottom: 24px; line-height: 1.5; }
+        .modal-buttons { display: flex; gap: 12px; }
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .btn-cancel {
+            background: #2c3e50;
+            color: white;
+        }
+        .btn-confirm {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-cancel:hover, .btn-confirm:hover {
+            transform: translateY(-2px);
         }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
@@ -204,6 +270,14 @@
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        hr {
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.05);
         }
     </style>
 </head>
@@ -260,6 +334,7 @@
             </div>
         </div>
 
+        <!-- Tarjeta de Registro de Usuario -->
         <div class="register-card">
             <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
             <div class="form-group"><input type="text" id="personRut" placeholder="RUT / DNI (Ej: 12.345.678-9)"></div>
@@ -267,6 +342,30 @@
             <div class="form-group"><input type="text" id="personRole" placeholder="Cargo / Puesto"></div>
             <div class="form-group"><input type="text" id="personEmpresa" placeholder="Empresa"></div>
             <button class="btn-register" onclick="enviarANube()"><i class="fas fa-save"></i> Guardar Registro</button>
+        </div>
+
+        <!-- Tarjeta de Eliminación de Usuario -->
+        <div class="register-card">
+            <h3><i class="fas fa-trash-alt"></i> Eliminar Usuario</h3>
+            <div class="form-group">
+                <select id="deleteUserSelect">
+                    <option value="">Cargando lista de usuarios...</option>
+                </select>
+            </div>
+            <button class="btn-register btn-delete" onclick="eliminarUsuario()"><i class="fas fa-user-minus"></i> Eliminar Usuario Seleccionado</button>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px;"></i>
+            <h3>¿Confirmar eliminación?</h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmarEliminacion()">Eliminar</button>
+            </div>
         </div>
     </div>
 </body>
