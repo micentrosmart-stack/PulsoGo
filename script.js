@@ -1,5 +1,5 @@
-// TU URL DE GOOGLE APPS SCRIPT
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxa6O9kgejvCaD_A7gsgMtsWoVML5LfSqXoyG6lKKrGze1QTfnNQMk_-reGgPjOh5txRA/exec";
+// TU NUEVA URL DE GOOGLE APPS SCRIPT
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRDhofBv-AyXF9AgzekgPeII37Fw-6JmKSfYR6U-3-5eInkL-sdXS7wthzBbbASUFYeA/exec";
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('overlay');
@@ -116,7 +116,6 @@ function mostrarPanelBienvenida(nombre, datos) {
     deniedPanel.style.display = 'none';
     
     // Mostrar información más completa si está disponible
-    let mensaje = "Bienvenido, " + nombre;
     if (datos && datos.empresa) {
         welcomeMessage.innerHTML = `Bienvenido, ${nombre}<br><span style="font-size: 16px;">🏢 ${datos.empresa}</span>`;
     } else {
@@ -203,7 +202,6 @@ function buscarCoincidencia(descriptorActual) {
     console.log(`🔍 Comparación: Mejor coincidencia = "${bestMatch.label}", Distancia = ${bestMatch.distance}`);
     
     if (bestMatch.label !== "unknown" && bestMatch.label !== "Desconocido") {
-        // Encontrar los datos completos del usuario
         const usuarioEncontrado = usuariosRegistrados.find(u => u.name === bestMatch.label);
         console.log(`✅ Coincidencia encontrada con: ${bestMatch.label}`);
         console.log(`   📋 Datos: RUT=${usuarioEncontrado?.rut}, Empresa=${usuarioEncontrado?.empresa}`);
@@ -223,13 +221,11 @@ async function enviarANube() {
     const role = document.getElementById('personRole').value;
     const empresa = document.getElementById('personEmpresa').value;
     
-    // Validar que todos los campos estén llenos
     if (!rut || !name || !role || !empresa) {
         alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa");
         return;
     }
     
-    // Validar formato básico de RUT (opcional pero recomendado)
     const rutRegex = /^[0-9]{1,2}\.[0-9]{3}\.[0-9]{3}-[0-9kK]$/;
     if (!rutRegex.test(rut)) {
         alert("⚠️ Formato de RUT inválido.\nEjemplo correcto: 12.345.678-9");
@@ -272,5 +268,4 @@ async function enviarANube() {
     }
 }
 
-// Iniciar el sistema
 iniciarSistema();
