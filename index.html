@@ -31,7 +31,6 @@
             max-width: 500px;
         }
 
-        /* Header Moderno */
         .header {
             text-align: center;
             margin-bottom: 25px;
@@ -44,7 +43,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -0.5px;
         }
 
         .header p {
@@ -53,7 +51,6 @@
             margin-top: 5px;
         }
 
-        /* Video Container */
         .video-container {
             position: relative;
             border-radius: 24px;
@@ -78,7 +75,6 @@
             height: 100%;
         }
 
-        /* Status Badge */
         .status-badge {
             display: inline-flex;
             align-items: center;
@@ -94,11 +90,7 @@
             border: 1px solid rgba(52, 152, 219, 0.3);
         }
 
-        .status-badge i {
-            font-size: 12px;
-        }
-
-        /* ========== TARJETA DE BIENVENIDA MODERNA ========== */
+        /* Tarjeta de Bienvenida */
         .welcome-card {
             display: none;
             margin-top: 20px;
@@ -106,7 +98,7 @@
             border-radius: 24px;
             overflow: hidden;
             border: 1px solid rgba(46, 204, 113, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(46, 204, 113, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
         }
 
@@ -125,12 +117,6 @@
             border-radius: 40px;
             font-size: 12px;
             font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .card-header i {
-            font-size: 24px;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
         .card-body {
@@ -155,8 +141,6 @@
             align-items: center;
             justify-content: center;
             font-size: 28px;
-            font-weight: 700;
-            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
         }
 
         .user-details {
@@ -164,31 +148,25 @@
         }
 
         .user-name {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 700;
             color: #fff;
             margin-bottom: 4px;
-            letter-spacing: -0.3px;
         }
 
         .user-company {
-            font-size: 14px;
+            font-size: 13px;
             color: #2ecc71;
-            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
-        }
-
-        .user-company i {
-            font-size: 12px;
         }
 
         .info-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             padding: 8px 12px;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
@@ -197,7 +175,6 @@
         .info-label {
             font-size: 12px;
             color: #8b8faa;
-            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -210,7 +187,7 @@
         }
 
         .info-value {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #fff;
         }
@@ -236,10 +213,9 @@
             font-size: 14px;
             font-weight: 600;
             color: #2ecc71;
-            letter-spacing: 0.5px;
         }
 
-        /* Tarjeta de Acceso Denegado */
+        /* Tarjeta Denegada */
         .denied-card {
             display: none;
             margin-top: 20px;
@@ -247,7 +223,6 @@
             border-radius: 24px;
             overflow: hidden;
             border: 1px solid rgba(231, 76, 60, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: shake 0.5s ease-in-out;
         }
 
@@ -255,11 +230,6 @@
             background: linear-gradient(135deg, #e74c3c, #c0392b);
             padding: 16px 20px;
             text-align: center;
-        }
-
-        .denied-header i {
-            font-size: 32px;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
         .denied-body {
@@ -273,12 +243,7 @@
             margin-bottom: 8px;
         }
 
-        .denied-body p {
-            color: #a0a0a0;
-            font-size: 14px;
-        }
-
-        /* Formulario de Registro Moderno */
+        /* Formulario */
         .register-card {
             margin-top: 24px;
             background: rgba(26, 31, 46, 0.8);
@@ -302,7 +267,7 @@
             margin-bottom: 12px;
         }
 
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 14px 16px;
             background: rgba(15, 20, 34, 0.9);
@@ -314,14 +279,13 @@
             transition: all 0.2s;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #3498db;
-            background: rgba(15, 20, 34, 1);
+        .form-group select option {
+            background: #1a1f2e;
         }
 
-        .form-group input::placeholder {
-            color: #4a4f6e;
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
         }
 
         .btn-register {
@@ -334,7 +298,6 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -346,16 +309,9 @@
             box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
         }
 
-        /* Animaciones */
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes shake {
@@ -384,7 +340,7 @@
             </div>
         </div>
 
-        <!-- TARJETA DE BIENVENIDA MODERNA -->
+        <!-- Tarjeta de Bienvenida -->
         <div class="welcome-card" id="welcome-card">
             <div class="card-header">
                 <span class="access-badge"><i class="fas fa-check-circle"></i> ACCESO AUTORIZADO</span>
@@ -392,7 +348,7 @@
             </div>
             <div class="card-body">
                 <div class="user-info">
-                    <div class="user-avatar" id="user-avatar">
+                    <div class="user-avatar">
                         <i class="fas fa-user-check"></i>
                     </div>
                     <div class="user-details">
@@ -404,18 +360,16 @@
                     </div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label">
-                        <i class="fas fa-id-card"></i>
-                        <span>RUT / DNI</span>
-                    </div>
+                    <div class="info-label"><i class="fas fa-id-card"></i><span>RUT / DNI</span></div>
                     <div class="info-value" id="user-rut">---</div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label">
-                        <i class="fas fa-briefcase"></i>
-                        <span>Cargo</span>
-                    </div>
+                    <div class="info-label"><i class="fas fa-briefcase"></i><span>Cargo</span></div>
                     <div class="info-value" id="user-role">---</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="fas fa-map-marker-alt"></i><span>Instalación</span></div>
+                    <div class="info-value" id="user-instalacion">---</div>
                 </div>
                 <div class="access-status">
                     <i class="fas fa-check-circle"></i>
@@ -424,7 +378,7 @@
             </div>
         </div>
 
-        <!-- TARJETA DE ACCESO DENEGADO -->
+        <!-- Tarjeta Denegada -->
         <div class="denied-card" id="denied-card">
             <div class="denied-header">
                 <i class="fas fa-ban"></i>
@@ -436,7 +390,7 @@
             </div>
         </div>
 
-        <!-- Formulario de Registro Moderno -->
+        <!-- Formulario de Registro con nueva columna INSTALACIÓN -->
         <div class="register-card">
             <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Usuario</h3>
             <div class="form-group">
@@ -450,6 +404,18 @@
             </div>
             <div class="form-group">
                 <input type="text" id="personEmpresa" placeholder="Empresa">
+            </div>
+            <div class="form-group">
+                <select id="personInstalacion">
+                    <option value="" disabled selected>Seleccione Instalación</option>
+                    <option value="Fábrica">🏭 Fábrica</option>
+                    <option value="Bodega">📦 Bodega</option>
+                    <option value="Mall">🛍️ Mall</option>
+                    <option value="Oficina">🏢 Oficina</option>
+                    <option value="Sucursal">📍 Sucursal</option>
+                    <option value="Planta">⚙️ Planta</option>
+                    <option value="Centro de Distribución">🚚 Centro de Distribución</option>
+                </select>
             </div>
             <button class="btn-register" onclick="enviarANube()">
                 <i class="fas fa-save"></i> Guardar Registro
