@@ -5,44 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pulso Go! - Control de Acceso Profesional</title>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script defer src="script.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* ============================================
            TEMA PROFESIONAL "BLUE SHADOW"
-           Para implementar en cualquier sistema
            ============================================ */
 
         :root {
-            /* Colores primarios */
             --primary-blue: #3b82f6;
             --primary-blue-dark: #2563eb;
             --primary-blue-darker: #1d4ed8;
             --primary-blue-light: #60a5fa;
-            
-            /* Colores secundarios */
             --success-green: #10b981;
             --success-green-dark: #059669;
             --warning-amber: #f59e0b;
             --warning-amber-dark: #d97706;
             --danger-red: #ef4444;
             --danger-red-dark: #dc2626;
-            
-            /* Fondo y superficie */
             --bg-dark: #0f172a;
             --bg-darker: #1e293b;
             --bg-card: #ffffff;
             --bg-surface: #f8fafc;
             --bg-hover: #f1f5f9;
-            
-            /* Texto */
             --text-primary: #1e293b;
             --text-secondary: #64748b;
             --text-light: #94a3b8;
             --text-white: #ffffff;
-            
-            /* Bordes y sombras */
             --border-color: #e2e8f0;
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -120,7 +109,6 @@
             height: 100%;
         }
 
-        /* Placeholder moderno para el video */
         .video-placeholder {
             position: absolute;
             top: 0;
@@ -134,6 +122,7 @@
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             z-index: 5;
             pointer-events: none;
+            transition: opacity 0.3s ease;
         }
 
         .video-placeholder i {
@@ -200,6 +189,7 @@
             box-shadow: var(--shadow-xl), 0 0 15px rgba(16, 185, 129, 0.2);
             animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             color: var(--text-primary);
+            position: relative;
         }
 
         .card-header {
@@ -218,6 +208,26 @@
             font-size: 12px;
             font-weight: 600;
             color: white;
+        }
+
+        .close-card-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .close-card-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
 
         .card-body {
@@ -330,6 +340,7 @@
             box-shadow: var(--shadow-xl);
             animation: shake 0.5s ease-in-out;
             color: var(--text-primary);
+            position: relative;
         }
 
         .denied-header {
@@ -337,6 +348,18 @@
             padding: 16px 20px;
             text-align: center;
             color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .denied-header span {
+            flex: 1;
+            text-align: center;
+        }
+
+        .denied-header i:first-child {
+            opacity: 0.7;
         }
 
         .denied-body {
@@ -380,7 +403,8 @@
             margin-bottom: 12px;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 14px 16px;
             background: rgba(15, 23, 42, 0.9);
@@ -392,7 +416,22 @@
             transition: all 0.3s;
         }
 
-        .form-group input:focus {
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 16px;
+        }
+
+        .form-group select option {
+            background: var(--bg-darker);
+            color: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--primary-blue);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
@@ -427,20 +466,25 @@
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
         }
 
-        /* Gradientes adicionales */
-        .gradient-primary {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        .btn-cancel {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 14px;
+            color: #ef4444;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
         }
 
-        .gradient-success {
-            background: linear-gradient(135deg, #10b981, #059669);
+        .btn-cancel:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.5);
         }
 
-        .gradient-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        /* Animaciones */
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -450,28 +494,6 @@
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
-        }
-
-        /* Badge GPS con efecto radar */
-        .gps-badge {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            padding: 8px 16px;
-            border-radius: 60px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-        }
-
-        .gps-badge.active {
-            background: linear-gradient(135deg, #10b981, #059669);
-            animation: pulse-radar 1.5s infinite;
-        }
-
-        @keyframes pulse-radar {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
     </style>
 </head>
@@ -485,7 +507,6 @@
         <div class="video-container">
             <video id="video" autoplay muted playsinline></video>
             <canvas id="overlay"></canvas>
-            <!-- Placeholder moderno para el video -->
             <div class="video-placeholder" id="video-placeholder">
                 <i class="fas fa-camera"></i>
                 <span class="placeholder-text">
@@ -506,7 +527,12 @@
         <div class="welcome-card" id="welcome-card">
             <div class="card-header">
                 <span class="access-badge"><i class="fas fa-check-circle"></i> ACCESO AUTORIZADO</span>
-                <i class="fas fa-id-card" style="color: white;"></i>
+                <div style="display: flex; gap: 8px;">
+                    <i class="fas fa-id-card" style="color: white;"></i>
+                    <button class="close-card-btn" onclick="cerrarTarjetas()" title="Cerrar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="card-body">
                 <div class="user-info">
@@ -529,6 +555,10 @@
                     <div class="info-label"><i class="fas fa-briefcase"></i><span>Cargo</span></div>
                     <div class="info-value" id="user-role">---</div>
                 </div>
+                <div class="info-row">
+                    <div class="info-label"><i class="fas fa-map-marker-alt"></i><span>Instalación</span></div>
+                    <div class="info-value" id="user-instalacion">---</div>
+                </div>
                 <div class="access-status">
                     <i class="fas fa-check-circle"></i>
                     <span>ACCESO CONCEDIDO</span>
@@ -539,7 +569,11 @@
         <!-- Tarjeta de Acceso Denegado -->
         <div class="denied-card" id="denied-card">
             <div class="denied-header">
-                <i class="fas fa-ban"></i>
+                <i class="fas fa-shield-alt"></i>
+                <span>SEGURIDAD</span>
+                <button class="close-card-btn" onclick="cerrarTarjetas()" title="Cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
             <div class="denied-body">
                 <i class="fas fa-user-slash" style="font-size: 48px; color: #ef4444; margin-bottom: 16px; display: block;"></i>
@@ -563,38 +597,375 @@
             <div class="form-group">
                 <input type="text" id="personEmpresa" placeholder="Empresa">
             </div>
+            <div class="form-group">
+                <select id="personInstalacion">
+                    <option value="">Seleccionar Instalación</option>
+                    <option value="Sede Central">Sede Central</option>
+                    <option value="Planta Norte">Planta Norte</option>
+                    <option value="Planta Sur">Planta Sur</option>
+                    <option value="Oficina Comercial">Oficina Comercial</option>
+                    <option value="Bodega Principal">Bodega Principal</option>
+                </select>
+            </div>
             <button class="btn-register" onclick="enviarANube()">
                 <i class="fas fa-save"></i> Guardar Registro
+            </button>
+            <button class="btn-cancel" onclick="desactivarModoRegistro()">
+                <i class="fas fa-times"></i> Cancelar Registro
             </button>
         </div>
     </div>
 
+    <!-- Tu script original -->
     <script>
-        // Control del placeholder del video
+        // ===== LAS DOS URLS DE GOOGLE APPS SCRIPT =====
+        const SCRIPT_URL_USUARIOS = "https://script.google.com/macros/s/AKfycbwRDhofBv-AyXF9AgzekgPeII37Fw-6JmKSfYR6U-3-5eInkL-sdXS7wthzBbbASUFYeA/exec";
+        const SCRIPT_URL_REGISTRO = "https://script.google.com/macros/s/AKfycbw6WM72PGsbbRacwHNv7VLiOe4r8DcXZ0Vjrvbcgh9etbzbtvCXCMdaYTI9eX4KS62LdQ/exec";
+
         const video = document.getElementById('video');
+        const canvas = document.getElementById('overlay');
+        const statusDiv = document.getElementById('status');
         const placeholder = document.getElementById('video-placeholder');
-        
+
+        const welcomeCard = document.getElementById('welcome-card');
+        const deniedCard = document.getElementById('denied-card');
+        const welcomeName = document.getElementById('welcome-name');
+        const welcomeCompany = document.getElementById('welcome-company');
+        const userRut = document.getElementById('user-rut');
+        const userRole = document.getElementById('user-role');
+
+        let usuariosRegistrados = [];
+        let cargandoUsuarios = true;
+        let deteccionEnProceso = false;
+        let ultimoUsuarioMostrado = null;
+        let tiempoEsperaEntreDetecciones = 3000;
+        let ultimoRegistroAcceso = {};
+        let modoRegistro = false;
+
+        // Control del placeholder del video
         video.addEventListener('play', () => {
             placeholder.style.opacity = '0';
             setTimeout(() => {
                 placeholder.style.display = 'none';
             }, 300);
         });
-        
+
         video.addEventListener('waiting', () => {
             placeholder.style.display = 'flex';
             placeholder.style.opacity = '1';
             document.querySelector('.placeholder-text').innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cargando...';
         });
-        
-        video.addEventListener('canplay', () => {
-            if (!video.paused) {
-                placeholder.style.opacity = '0';
-                setTimeout(() => {
-                    placeholder.style.display = 'none';
-                }, 300);
+
+        // Registrar acceso
+        async function registrarAccesoEnArchivoSeparado(usuario) {
+            try {
+                const ahora = Date.now();
+                if (ultimoRegistroAcceso[usuario.id] && ahora - ultimoRegistroAcceso[usuario.id] < 10000) {
+                    console.log("⏭️ Acceso ya registrado recientemente para:", usuario.name);
+                    return;
+                }
+                
+                ultimoRegistroAcceso[usuario.id] = ahora;
+                
+                const payload = {
+                    id: usuario.id,
+                    rut: usuario.rut,
+                    name: usuario.name,
+                    role: usuario.role,
+                    empresa: usuario.empresa,
+                    instalacion: usuario.instalacion,
+                    fecha: new Date().toISOString()
+                };
+                
+                console.log("📝 Registrando acceso:", usuario.name, "-", usuario.instalacion);
+                
+                await fetch(SCRIPT_URL_REGISTRO, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify(payload) 
+                });
+                
+                console.log("✅ Acceso registrado");
+            } catch (err) {
+                console.error("❌ Error:", err);
             }
-        });
+        }
+
+        async function iniciarSistema() {
+            try {
+                updateStatus("Cargando modelos faciales...", "fa-spinner fa-pulse");
+                
+                const path = '.';
+                await faceapi.nets.tinyFaceDetector.loadFromUri(path);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(path);
+                await faceapi.nets.faceRecognitionNet.loadFromUri(path);
+                
+                updateStatus("Cargando base de datos...", "fa-spinner fa-pulse");
+                await cargarUsuariosDesdeExcel();
+                cargandoUsuarios = false;
+                
+                console.log("✅ Sistema listo -", usuariosRegistrados.length, "usuarios");
+
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                video.srcObject = stream;
+                
+                video.onplay = () => {
+                    updateStatus("Sistema activo - Esperando usuario", "fa-eye");
+                    const displaySize = { width: video.clientWidth, height: video.clientHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+
+                    setInterval(async () => {
+                        if (modoRegistro) return;
+                        if (deteccionEnProceso) return;
+                        
+                        deteccionEnProceso = true;
+                        
+                        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+                            .withFaceLandmarks()
+                            .withFaceDescriptors();
+                        
+                        const resized = faceapi.resizeResults(detections, displaySize);
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        let personaAutorizada = false;
+                        let datosPersona = null;
+                        let rostroEncontrado = false;
+                        
+                        if (resized.length > 0) {
+                            rostroEncontrado = true;
+                            const rostro = resized[0];
+                            const descriptor = rostro.descriptor;
+                            const resultado = buscarCoincidencia(descriptor);
+                            
+                            if (resultado.label !== "Desconocido" && resultado.label !== "unknown") {
+                                personaAutorizada = true;
+                                datosPersona = resultado.datos;
+                                console.log("✅ AUTORIZADO:", resultado.label);
+                            } else {
+                                console.log("🔴 ACCESO DENEGADO");
+                            }
+                            
+                            dibujarCuadroDeteccion(ctx, rostro, personaAutorizada);
+                        }
+                        
+                        if (personaAutorizada && datosPersona) {
+                            if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== datosPersona.id) {
+                                mostrarTarjetaBienvenida(datosPersona);
+                                ultimoUsuarioMostrado = datosPersona;
+                            }
+                        } else if (rostroEncontrado && !personaAutorizada) {
+                            if (!ultimoUsuarioMostrado || ultimoUsuarioMostrado.id !== 'denegado') {
+                                mostrarTarjetaDenegada();
+                                ultimoUsuarioMostrado = { id: 'denegado' };
+                            }
+                        }
+                        
+                        setTimeout(() => {
+                            deteccionEnProceso = false;
+                        }, tiempoEsperaEntreDetecciones);
+                        
+                        updateStatus("Sistema activo", "fa-eye");
+                        
+                    }, 100);
+                };
+            } catch (err) {
+                updateStatus("Error: " + err.message, "fa-exclamation-triangle");
+                console.error(err);
+            }
+        }
+
+        function dibujarCuadroDeteccion(ctx, rostro, esAutorizado) {
+            if (esAutorizado) {
+                ctx.strokeStyle = "#10b981";
+                ctx.lineWidth = 4;
+                ctx.shadowColor = "#10b981";
+                ctx.shadowBlur = 10;
+                ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                             rostro.detection.box.width, rostro.detection.box.height);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "#10b981";
+                ctx.font = "bold 16px 'Inter'";
+                ctx.fillText("✓ AUTORIZADO", rostro.detection.box.x, rostro.detection.box.y - 8);
+            } else {
+                ctx.strokeStyle = "#ef4444";
+                ctx.lineWidth = 4;
+                ctx.shadowColor = "#ef4444";
+                ctx.shadowBlur = 10;
+                ctx.strokeRect(rostro.detection.box.x, rostro.detection.box.y, 
+                             rostro.detection.box.width, rostro.detection.box.height);
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "#ef4444";
+                ctx.font = "bold 16px 'Inter'";
+                ctx.fillText("✗ ACCESO DENEGADO", rostro.detection.box.x, rostro.detection.box.y - 8);
+            }
+        }
+
+        function mostrarTarjetaBienvenida(usuario) {
+            registrarAccesoEnArchivoSeparado(usuario);
+            
+            deniedCard.style.display = 'none';
+            welcomeName.textContent = usuario.name || "Usuario";
+            
+            const companySpan = welcomeCompany.querySelector('span');
+            if (companySpan) {
+                companySpan.textContent = usuario.empresa || "No especificada";
+            }
+            
+            userRut.textContent = usuario.rut || "No registrado";
+            userRole.textContent = usuario.role || "No especificado";
+            
+            const userInstalacionEl = document.getElementById('user-instalacion');
+            if (userInstalacionEl) {
+                userInstalacionEl.textContent = usuario.instalacion || "No especificada";
+            }
+            
+            welcomeCard.style.display = 'block';
+            
+            console.log("🎉 BIENVENIDO:", usuario.name, "|", usuario.instalacion);
+        }
+
+        function mostrarTarjetaDenegada() {
+            welcomeCard.style.display = 'none';
+            deniedCard.style.display = 'block';
+        }
+
+        function cerrarTarjetas() {
+            welcomeCard.style.display = 'none';
+            deniedCard.style.display = 'none';
+            ultimoUsuarioMostrado = null;
+        }
+
+        function ocultarTarjetas() {
+            welcomeCard.style.display = 'none';
+            deniedCard.style.display = 'none';
+            ultimoUsuarioMostrado = null;
+        }
+
+        function updateStatus(texto, icono) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.innerHTML = `<i class="fas ${icono}"></i><span>${texto}</span>`;
+            }
+        }
+
+        async function cargarUsuariosDesdeExcel() {
+            try {
+                const response = await fetch(SCRIPT_URL_USUARIOS);
+                const data = await response.json();
+                
+                console.log("📥 Datos recibidos:", data.length, "usuarios");
+                
+                usuariosRegistrados = data.map(user => ({
+                    id: user.id,
+                    name: user.name,
+                    rut: user.rut,
+                    role: user.role,
+                    empresa: user.empresa,
+                    instalacion: user.instalacion,
+                    descriptor: new Float32Array(JSON.parse(user.faceDescriptor))
+                }));
+                
+                usuariosRegistrados.forEach(u => console.log(`   👤 ${u.name} | 🏭 ${u.instalacion || "N/A"}`));
+            } catch (e) {
+                console.error("❌ Error:", e);
+                usuariosRegistrados = [];
+            }
+        }
+
+        function buscarCoincidencia(descriptorActual) {
+            if (usuariosRegistrados.length === 0) return { label: "Desconocido", datos: null };
+
+            const labeledDescriptors = usuariosRegistrados.map(u => 
+                new faceapi.LabeledFaceDescriptors(u.name, [u.descriptor])
+            );
+            
+            const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+            const bestMatch = faceMatcher.findBestMatch(descriptorActual);
+            
+            if (bestMatch.label !== "unknown" && bestMatch.label !== "Desconocido") {
+                const usuarioEncontrado = usuariosRegistrados.find(u => u.name === bestMatch.label);
+                return { label: bestMatch.label, datos: usuarioEncontrado };
+            }
+            return { label: "Desconocido", datos: null };
+        }
+
+        function activarModoRegistro() {
+            modoRegistro = true;
+            ocultarTarjetas();
+            updateStatus("📝 MODO REGISTRO ACTIVO", "fa-user-plus");
+            console.log("📝 Modo registro activado - Detección pausada");
+        }
+
+        function desactivarModoRegistro() {
+            modoRegistro = false;
+            updateStatus("Sistema activo", "fa-eye");
+            console.log("✅ Modo registro desactivado - Detección reanudada");
+        }
+
+        async function enviarANube() {
+            activarModoRegistro();
+            
+            const rut = document.getElementById('personRut').value;
+            const name = document.getElementById('personName').value;
+            const role = document.getElementById('personRole').value;
+            const empresa = document.getElementById('personEmpresa').value;
+            const instalacion = document.getElementById('personInstalacion')?.value || 'No especificada';
+            
+            console.log("📝 Datos del formulario:");
+            console.log("  RUT:", rut);
+            console.log("  Nombre:", name);
+            console.log("  Cargo:", role);
+            console.log("  Empresa:", empresa);
+            console.log("  Instalación:", instalacion);
+            
+            if (!rut || !name || !role || !empresa || !instalacion) {
+                alert("❌ Por favor, completa TODOS los campos:\n- RUT\n- Nombre Completo\n- Cargo\n- Empresa\n- Instalación");
+                desactivarModoRegistro();
+                return;
+            }
+
+            updateStatus("Capturando rostro...", "fa-camera");
+            
+            const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks()
+                .withFaceDescriptor();
+
+            if (detection) {
+                const payload = {
+                    id: Date.now().toString(),
+                    rut: rut,
+                    name: name.toUpperCase(),
+                    role: role,
+                    empresa: empresa.toUpperCase(),
+                    instalacion: instalacion,
+                    faceDescriptor: JSON.stringify(Array.from(detection.descriptor))
+                };
+                
+                console.log("📤 Enviando payload:", payload);
+                
+                fetch(SCRIPT_URL_USUARIOS, { 
+                    method: 'POST', 
+                    mode: 'no-cors', 
+                    body: JSON.stringify(payload) 
+                })
+                .then(() => {
+                    alert(`✅ REGISTRO EXITOSO!\n\n👤 ${name}\n🏭 ${instalacion}\n🔄 Recargando...`);
+                    location.reload();
+                })
+                .catch(err => {
+                    console.error("❌ Error:", err);
+                    alert("❌ Error al registrar: " + err.message);
+                    desactivarModoRegistro();
+                });
+            } else {
+                alert("❌ No se detectó ningún rostro. Asegúrate de estar mirando directamente a la cámara.");
+                updateStatus("No se detectó rostro", "fa-face-frown");
+                desactivarModoRegistro();
+            }
+        }
+
+        iniciarSistema();
     </script>
 </body>
 </html>
