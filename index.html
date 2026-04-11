@@ -9,48 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* ============================================
-           TEMA PROFESIONAL "BLUE SHADOW"
-           Para implementar en cualquier sistema
-           ============================================ */
-
-        :root {
-            /* Colores primarios */
-            --primary-blue: #3b82f6;
-            --primary-blue-dark: #2563eb;
-            --primary-blue-darker: #1d4ed8;
-            --primary-blue-light: #60a5fa;
-            
-            /* Colores secundarios */
-            --success-green: #10b981;
-            --success-green-dark: #059669;
-            --warning-amber: #f59e0b;
-            --warning-amber-dark: #d97706;
-            --danger-red: #ef4444;
-            --danger-red-dark: #dc2626;
-            
-            /* Fondo y superficie */
-            --bg-dark: #0f172a;
-            --bg-darker: #1e293b;
-            --bg-card: #ffffff;
-            --bg-surface: #f8fafc;
-            --bg-hover: #f1f5f9;
-            
-            /* Texto */
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --text-light: #94a3b8;
-            --text-white: #ffffff;
-            
-            /* Bordes y sombras */
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.3);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -58,7 +16,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background: linear-gradient(135deg, #0a0e1a 0%, #0f1422 100%);
             color: white;
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
@@ -79,30 +37,27 @@
         }
 
         .header h1 {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 800;
-            background: linear-gradient(135deg, #60a5fa, #3b82f6, #2ecc71);
+            background: linear-gradient(135deg, #3498db, #2ecc71);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            letter-spacing: -0.5px;
-            text-shadow: var(--shadow-glow);
         }
 
         .header p {
             font-size: 13px;
-            color: var(--text-light);
+            color: #6c7293;
             margin-top: 5px;
-            font-weight: 500;
         }
 
         .video-container {
             position: relative;
             border-radius: 24px;
             overflow: hidden;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            box-shadow: var(--shadow-xl), var(--shadow-glow);
-            border: 2px solid rgba(59, 130, 246, 0.3);
+            background: #000;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(52, 152, 219, 0.3);
         }
 
         video {
@@ -120,90 +75,35 @@
             height: 100%;
         }
 
-        /* Placeholder moderno para el video */
-        .video-placeholder {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        .video-placeholder i {
-            font-size: 64px;
-            color: rgba(59, 130, 246, 0.5);
-            margin-bottom: 16px;
-            animation: pulse-icon 2s infinite;
-        }
-
-        .video-placeholder .placeholder-text {
-            color: var(--text-light);
-            font-size: 14px;
-            font-weight: 500;
-            background: rgba(59, 130, 246, 0.1);
-            padding: 8px 20px;
-            border-radius: 60px;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            backdrop-filter: blur(4px);
-        }
-
-        .video-placeholder .scan-line {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #3b82f6, #60a5fa, #3b82f6, transparent);
-            animation: scan 2.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse-icon {
-            0%, 100% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
-        }
-
-        @keyframes scan {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(59, 130, 246, 0.15);
+            background: rgba(52, 152, 219, 0.15);
             backdrop-filter: blur(10px);
             padding: 8px 16px;
             border-radius: 40px;
             margin-top: 15px;
             font-size: 13px;
             font-weight: 500;
-            color: var(--primary-blue-light);
-            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3498db;
+            border: 1px solid rgba(52, 152, 219, 0.3);
         }
 
         /* Tarjeta de Bienvenida */
         .welcome-card {
             display: none;
             margin-top: 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            background: linear-gradient(135deg, #1a1f2e 0%, #0f1422 100%);
             border-radius: 24px;
             overflow: hidden;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            box-shadow: var(--shadow-xl), 0 0 15px rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            color: var(--text-primary);
         }
 
         .card-header {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
             padding: 16px 20px;
             display: flex;
             align-items: center;
@@ -217,7 +117,6 @@
             border-radius: 40px;
             font-size: 12px;
             font-weight: 600;
-            color: white;
         }
 
         .card-body {
@@ -230,20 +129,18 @@
             gap: 16px;
             margin-bottom: 20px;
             padding-bottom: 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .user-avatar {
             width: 60px;
             height: 60px;
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 28px;
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .user-details {
@@ -253,17 +150,16 @@
         .user-name {
             font-size: 20px;
             font-weight: 700;
-            color: var(--text-primary);
+            color: #fff;
             margin-bottom: 4px;
         }
 
         .user-company {
             font-size: 13px;
-            color: #059669;
+            color: #2ecc71;
             display: flex;
             align-items: center;
             gap: 6px;
-            font-weight: 500;
         }
 
         .info-row {
@@ -272,13 +168,13 @@
             justify-content: space-between;
             margin-bottom: 10px;
             padding: 8px 12px;
-            background: rgba(59, 130, 246, 0.05);
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
         }
 
         .info-label {
             font-size: 12px;
-            color: var(--text-secondary);
+            color: #8b8faa;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -287,19 +183,19 @@
         .info-label i {
             width: 18px;
             font-size: 12px;
-            color: #059669;
+            color: #2ecc71;
         }
 
         .info-value {
             font-size: 13px;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #fff;
         }
 
         .access-status {
             margin-top: 16px;
             padding: 12px;
-            background: rgba(16, 185, 129, 0.08);
+            background: rgba(46, 204, 113, 0.1);
             border-radius: 12px;
             text-align: center;
             display: flex;
@@ -310,33 +206,30 @@
 
         .access-status i {
             font-size: 20px;
-            color: #059669;
+            color: #2ecc71;
         }
 
         .access-status span {
             font-size: 14px;
             font-weight: 600;
-            color: #059669;
+            color: #2ecc71;
         }
 
         /* Tarjeta Denegada */
         .denied-card {
             display: none;
             margin-top: 20px;
-            background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+            background: linear-gradient(135deg, #2a1a1a 0%, #1a0f0f 100%);
             border-radius: 24px;
             overflow: hidden;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(231, 76, 60, 0.3);
             animation: shake 0.5s ease-in-out;
-            color: var(--text-primary);
         }
 
         .denied-header {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
             padding: 16px 20px;
             text-align: center;
-            color: white;
         }
 
         .denied-body {
@@ -346,24 +239,23 @@
 
         .denied-body h3 {
             font-size: 24px;
-            color: #dc2626;
+            color: #e74c3c;
             margin-bottom: 8px;
         }
 
         .denied-body p {
-            color: var(--text-secondary);
+            color: #a0a0a0;
             font-size: 14px;
         }
 
         /* Formulario de Registro */
         .register-card {
             margin-top: 24px;
-            background: rgba(30, 41, 59, 0.9);
+            background: rgba(26, 31, 46, 0.8);
             backdrop-filter: blur(10px);
             border-radius: 24px;
             padding: 20px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .register-card h3 {
@@ -373,7 +265,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            color: var(--text-white);
+            color: #b0b0b0;
         }
 
         .form-group {
@@ -383,64 +275,47 @@
         .form-group input {
             width: 100%;
             padding: 14px 16px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            background: rgba(15, 20, 34, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 14px;
             color: white;
             font-family: 'Inter', sans-serif;
             font-size: 14px;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            background: rgba(15, 23, 42, 1);
+            border-color: #3498db;
+            background: rgba(15, 20, 34, 1);
         }
 
         .form-group input::placeholder {
-            color: var(--text-light);
+            color: #4a4f6e;
         }
 
         .btn-register {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            background: linear-gradient(135deg, #3498db, #2980b9);
             border: none;
             border-radius: 14px;
             color: white;
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
 
         .btn-register:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
         }
 
-        /* Gradientes adicionales */
-        .gradient-primary {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-        }
-
-        .gradient-success {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .gradient-danger {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        /* Animaciones */
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -451,48 +326,18 @@
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
-
-        /* Badge GPS con efecto radar */
-        .gps-badge {
-            background: linear-gradient(135deg, #dc2626, #b91c1c);
-            padding: 8px 16px;
-            border-radius: 60px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-        }
-
-        .gps-badge.active {
-            background: linear-gradient(135deg, #10b981, #059669);
-            animation: pulse-radar 1.5s infinite;
-        }
-
-        @keyframes pulse-radar {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
     </style>
 </head>
 <body>
     <div class="main-container">
         <div class="header">
             <h1>Pulso Go!</h1>
-            <p>Sistema de Control de Acceso Profesional</p>
+            <p>Sistema de Control de Acceso</p>
         </div>
 
         <div class="video-container">
             <video id="video" autoplay muted playsinline></video>
             <canvas id="overlay"></canvas>
-            <!-- Placeholder moderno para el video -->
-            <div class="video-placeholder" id="video-placeholder">
-                <i class="fas fa-camera"></i>
-                <span class="placeholder-text">
-                    <i class="fas fa-circle-notch fa-spin"></i> Iniciando cámara...
-                </span>
-                <div class="scan-line"></div>
-            </div>
         </div>
 
         <div style="text-align: center;">
@@ -506,7 +351,7 @@
         <div class="welcome-card" id="welcome-card">
             <div class="card-header">
                 <span class="access-badge"><i class="fas fa-check-circle"></i> ACCESO AUTORIZADO</span>
-                <i class="fas fa-id-card" style="color: white;"></i>
+                <i class="fas fa-id-card"></i>
             </div>
             <div class="card-body">
                 <div class="user-info">
@@ -542,7 +387,7 @@
                 <i class="fas fa-ban"></i>
             </div>
             <div class="denied-body">
-                <i class="fas fa-user-slash" style="font-size: 48px; color: #ef4444; margin-bottom: 16px; display: block;"></i>
+                <i class="fas fa-user-slash" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px; display: block;"></i>
                 <h3>ACCESO DENEGADO</h3>
                 <p>Usuario no registrado en el sistema</p>
             </div>
@@ -568,33 +413,5 @@
             </button>
         </div>
     </div>
-
-    <script>
-        // Control del placeholder del video
-        const video = document.getElementById('video');
-        const placeholder = document.getElementById('video-placeholder');
-        
-        video.addEventListener('play', () => {
-            placeholder.style.opacity = '0';
-            setTimeout(() => {
-                placeholder.style.display = 'none';
-            }, 300);
-        });
-        
-        video.addEventListener('waiting', () => {
-            placeholder.style.display = 'flex';
-            placeholder.style.opacity = '1';
-            document.querySelector('.placeholder-text').innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Cargando...';
-        });
-        
-        video.addEventListener('canplay', () => {
-            if (!video.paused) {
-                placeholder.style.opacity = '0';
-                setTimeout(() => {
-                    placeholder.style.display = 'none';
-                }, 300);
-            }
-        });
-    </script>
 </body>
 </html>
